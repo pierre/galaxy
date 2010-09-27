@@ -1,0 +1,124 @@
+#!/usr/bin/env ruby
+
+tried = false
+begin
+    require 'galaxy/agent'
+    require 'galaxy/daemon'
+    require 'galaxy/config'
+    require 'galaxy/version'
+rescue LoadError
+    tried = true
+    $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
+    tried ? raise : retry
+end
+require 'optparse'
+require 'ostruct'
+
+action = "help"
+command_line_options = OpenStruct.new
+opts = OptionParser.new do |opts|
+    opts.banner = "Usage: #{$0} <command> [options]"
+
+    opts.separator "  Commands, use just one of these"
+    opts.on("-s", "--start", "Start the agent") { action = "start" }
+    opts.on("-k", "--stop", "Stop the agent") { action = "stop" }
+
+    opts.separator "  Options for Start"
+    opts.on("-C", "--config FILE", "Configuration file (overrides GALAXY_CONFIG)") do |arg|
+        command_line_options.config_file = arg
+    end
+    opts.on("-i", "--host HOST[:PORT]", "Hostname this agent manages (default localhost)") do |host|
+        command_line_options.host = host
+    end
+    opts.on("-m", "--machine MACHINE", "Physical machine where the agent lives (overrides -M)") do |machine|
+        command_line_options.machine = machine
+    end
+    opts.on("-M", "--machine-file FILE", "Filename containing the physical machine name") do |machine_file|
+        command_line_options.machine_file = machine_file
+    end
+    opts.on("-c", "--console ['http://'|'druby://']HOST[:PORT]", "Hostname where the console is listening") do |console|
+        command_line_options.console = console
+    end
+    opts.on("-r", "--repository URL", "Base URL for the repository") do |repo|
+        command_line_options.repository = repo
+    end
+    opts.on("-b", "--binaries URL", "Base URL for the binary archive") do |bin|
+        command_line_options.binaries = bin
+    end
+    opts.on("-d", "--deploy-to DIR", "Directory where to make deployments") do |path|
+        command_line_options.deploy_dir = path
+    end
+    opts.on("-x", "--data DIR", "Directory for the agent's database") do |path|
+        command_line_options.data_dir = path
+    end
+    opts.on("-f", "--fore", "--foreground", "Run agent in the foreground") do
+        command_line_options.foreground = true
+    end
+    opts.on("-a", "--announce-interval INTERVAL", "How frequently (in seconds) the agent should announce") do |interval|
+        command_line_options.announce_interval = interval
+    end
+
+    opts.separator "  General Options"
+    opts.on_tail("-l", "--log LOG", "STDOUT | STDERR | SYSLOG | /path/to/file.log") do |log|
+        command_line_options.log = log
+    end
+    opts.on_tail("-L", "--log-level LEVEL", "DEBUG | INFO | WARN | ERROR. Default=INFO") do |level|
+        command_line_options.log_level = level
+    end
+    opts.on_tail("-u", "--user USER", "User to run as") do |arg|
+        command_line_options.user = arg
+    end
+    opts.on("-z", "--event_listener URL", "Which listener to use") do |event_listener|
+        command_line_options.event_listener = event_listener
+    end
+    opts.on_tail("-g", "--agent-log FILE", "File agent should rediect stdout and stderr to") do |log|
+        command_line_options.agent_log = log
+    end
+
+    opts.on_tail("-t", "--test", "Test, displays as -v without doing anything") do
+        command_line_options.verbose = true
+        command_line_options.test = true
+    end
+    opts.on_tail("-v", "--verbose", "Verbose output") { command_line_options.verbose = true }
+    opts.on_tail("-V", "--version", "Print the galaxy version and exit") { action = "version" }
+    opts.on_tail("-h", "--help", "Show this help") { action = "help" }
+
+
+    begin
+        opts.parse! ARGV
+    rescue Exception => msg
+        puts opts
+        puts msg
+        exit 1
+    end
+end
+
+case action
+    when "help"
+        puts opts
+
+    when "version"
+        puts "Galaxy version #{Galaxy::Version}"
+
+    when "start"
+        config = Galaxy::AgentConfigurator.new(command_line_options).configure
+        exit if command_line_options.test
+        if command_line_options.foreground
+            agent = Galaxy::Agent.start config
+            agent.join
+        else
+            Galaxy::Daemon.start('galaxy-agent', config[:pid_file], config[:user]) do
+                agent = Galaxy::Agent.start config
+                agent.join
+            end
+        end
+
+    when "stop"
+        config = Galaxy::AgentConfigurator.new(command_line_options).configure
+        begin
+            Galaxy::Daemon.kill_daemon(config[:pid_file])
+        rescue Exception => e
+            abort("Error: #{e}")
+        end
+
+end

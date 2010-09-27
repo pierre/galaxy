@@ -1,0 +1,35 @@
+#!/bin/bash -l
+# chkconfig: 2345 80 90
+# description: Activates/Deactivates Galaxy console
+
+GALAXY_CONFIG="/etc/galaxy.conf"
+GALAXY_USER=`ruby -ryaml -e "puts YAML.load(File.open('$GALAXY_CONFIG'))['galaxy.console.user'] || ''"`
+
+if [ -z "$GALAXY_USER" ]
+then
+    echo "Error: Unable to determine galaxy console user. Please set the galaxy.console.user property in $GALAXY_CONFIG."
+    exit 2
+fi
+
+case "$1" in
+'start')
+        logger -p daemon.notice "Starting galaxy-console"
+        su - $GALAXY_USER -c 'galaxy-console --start'
+        ;;
+'stop')
+        logger -p daemon.notice "Stopping galaxy-console"
+        su - $GALAXY_USER -c 'galaxy-console --stop'
+        ;;
+'restart')
+        logger -p daemon.notice "Restarting galaxy-console"
+        su - $GALAXY_USER -c 'galaxy-console --stop'
+        su - $GALAXY_USER -c 'galaxy-console --start'
+        ;;
+'status') 
+        galaxy-console --status
+        ;;
+*)
+        echo "Usage: $0 <start|stop|restart|status>"
+        exit 1
+        ;;
+esac

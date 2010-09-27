@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'fileutils'
+
+OptionParser.new do |opts|
+  opts.on("--base BASE") { |arg| DeployBase = arg }
+  opts.on("--binaries BINARIES") { |arg| BinariesBase = arg }
+  opts.on("--config-path PATH") { |arg| ConfigPath = arg }
+  opts.on("--repository URL") { |arg| Repository = arg }
+end.parse! ARGV
+
+# for test_xndeploy_invoked_on_deploy
+begin
+  dump = {
+    :deploy_base => DeployBase,
+    :config_path => ConfigPath,
+    :repository => Repository,
+    :binaries_base => BinariesBase,
+  }
+  File.open(File.join(DeployBase, "xndeploy_touched_me"), "w") do |file|
+    Marshal.dump(dump, file)
+  end
+rescue TypeError
+end

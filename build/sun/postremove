@@ -1,0 +1,42 @@
+#!/bin/bash -l
+#
+# Removes the previously installed Galaxy gem
+#
+
+#
+# Reinvoke under bash to configure PATH
+#
+if [ -z "$BASH" ]
+then
+    exec /bin/bash -l $0 $*
+fi
+
+PACKAGE="galaxy"
+PACKAGE_VERSION="#{PACKAGE_VERSION}"
+GEM_VERSION="#{GEM_VERSION}"
+
+# The filesystem containing the gem directory may be mounted read-only on
+# zones with shared filesystems. Do not install the gem in these cases,
+# but warn the user so they know that the gem was not installed.
+gemdir=`ruby -rubygems -e 'puts Gem::dir'`
+
+# We can't just use '[ -w $gemdir ]' here because -w only checks the mode
+# bits on the file and cannot determine whether the underlying filesystem
+# is mounted read-only.
+WRITABLE_TEST="$gemdir/galaxy-write-test"
+touch $WRITABLE_TEST 2>/dev/null
+
+if [ $? -eq 0 ]
+then
+    rm $WRITABLE_TEST
+    gem uninstall -v=$GEM_VERSION $PACKAGE
+
+    if [ $? -ne 0 ]
+    then
+        echo "Error: Unable to remove $PACKAGE-$GEM_VERSION gem"
+        exit 1
+    fi
+    rm -f /etc/galaxy.conf
+else
+    echo "WARNING: Skipping Gem removal for unwritable directory $gemdir"
+fi

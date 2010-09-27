@@ -1,0 +1,44 @@
+#!/bin/bash -l
+#
+# Prepare for installation of Galaxy Agent.
+#
+# Solaris boxes don't run gonsoles.
+#
+
+#
+# Reinvoke under bash to configure PATH
+#
+if [ -z "$BASH" ]
+then
+    exec /bin/bash -l $0 $*
+fi
+
+PACKAGE="galaxy"
+PACKAGE_VERSION="#{PACKAGE_VERSION}"
+GEM_VERSION="#{GEM_VERSION}"
+
+# Stop and disable Galaxy Agent
+
+ZONENAME=`zonename`
+if [ $ZONENAME = global ]
+then
+    for zone in `zoneadm list -cv | awk '$3 == "running" && $2 != "global" { print $2 }'`   # Non-global zones
+    do
+        zlogin $zone svcadm disable "galaxy-agent"
+    done
+else
+    svcadm disable "galaxy-agent"                                                           # Global zone
+fi
+
+# Kill rogue Galaxy Agent processes
+killed_some=
+for pid in `ps -ef | grep galaxy-agent | grep -v grep | awk '{print $2}'`
+do
+    kill $pid
+    killed_some=true
+done
+[ ! -z $killed_some ] && sleep 5
+for pid in `ps -ef | grep galaxy-agent | grep -v grep | awk '{print $2}'`
+do
+    kill -9 $pid
+done

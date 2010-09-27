@@ -1,0 +1,12 @@
+pkg/
+*.o
+*.lo
+*.pc
+*.log
+*.status
+.deps/
+*.iml
+*.ipr
+*.iws
+coverage/
+target/

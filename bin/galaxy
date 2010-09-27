@@ -1,0 +1,232 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'optparse'
+require 'resolv'
+require 'timeout'
+
+require 'galaxy/client'
+require 'galaxy/command'
+require 'galaxy/config'
+require 'galaxy/host'
+require 'galaxy/version'
+require 'galaxy/transport'
+require 'galaxy/versioning'
+
+@filter = {}
+@options = {
+    :console_url => ENV['GALAXY_CONSOLE'],
+    :thread_count => 25,
+    :versioning_policy => Galaxy::Versioning::StrictVersioningPolicy,
+    }
+
+@opts = OptionParser.new do |opts|
+    opts.banner = "#{$0} [options] <command> [args]"
+
+    opts.separator ""
+    opts.separator "Options:"
+    opts.on("-h", "--help", "Display a help message and exit") { @options[:help_requested] = true }
+    opts.on("-c", "--console CONSOLE", "Galaxy console host (overrides GALAXY_CONSOLE)") { |arg| @options[:console_url] = arg }
+    opts.on("-C", "--config FILE", "Configuration file (overrides GALAXY_CONFIG)") { |arg| @options[:config_file] = arg }
+    opts.on("-p", "--parallel-count THREADS", "Maximum number of threads to use, default #{@options[:thread_count]}") { |arg| @options[:thread_count] = arg.to_i }
+    opts.on("-r", "--relaxed-versioning", "Allow updates to the currently assigned version") { @options[:versioning_policy] = Galaxy::Versioning::RelaxedVersioningPolicy }
+    opts.on("-V", "Display the Galaxy version number and exit") do |x|
+        puts "Galaxy version #{Galaxy::Version}"
+        @options[:version_requested] = true
+    end
+    opts.on("-y", "--yes", "Avoid confirmation prompts by automatically confirming all actions") { @options[:implicit_confirmation] = true }
+
+    opts.separator ""
+    opts.separator "Filters:"
+
+    opts.on("-i", "--host HOST", "Select a specific agent by hostname") do |arg|
+        @filter[:host] = arg
+    end
+
+    opts.on("-I", "--ip IP", "Select a specific agent by IP address") do |arg|
+        @filter[:ip] = arg
+    end
+
+    opts.on("-m", "--machine MACHINE", "Select agents by physical machine") do |arg|
+        @filter[:machine] = arg
+    end
+
+    opts.on("-M", "--cohabitants HOST", "Select agents that share a physical machine with the specified host") do |arg|
+        @options[:cohabitant_host] = arg
+    end
+
+    opts.on("-s", "--set SET", "Select 'e{mpty}', 't{aken}' or 'a{ll}' hosts", [:empty, :all, :taken, :e, :a, :t]) do |arg|
+        case arg
+            when :all, :a then
+                @filter[:set] = :all
+            when :empty, :e then
+                @filter[:set] = :empty
+            when :taken, :t then
+                @filter[:set] = :taken
+        end
+    end
+
+    opts.on("-S", "--state STATE", "Select 'r{unning}' or 's{topped}' hosts", [:running, :stopped, :r, :s]) do |arg|
+        case arg
+            when :running, :r then
+                @filter[:state] = 'running'
+            when :stopped, :s then
+                @filter[:state] = 'stopped'
+        end
+    end
+
+    opts.on("-A", "--agent-state STATE", "Select 'online' or 'offline' agents", [:online, :offline]) do |arg|
+        case arg
+            when :online then
+                @filter[:agent_state] = 'online'
+            when :offline then
+                @filter[:agent_state] = 'offline'
+        end
+    end
+
+    opts.on("-e", "--env ENV", "Select agents in the given environment") { |arg| @filter[:env] = arg }
+    opts.on("-t", "--type TYPE", "Select agents with a given software type") { |arg| @filter[:type] = arg }
+    opts.on("-v", "--version VERSION", "Select agents with a given software version") { |arg| @filter[:version] = arg }
+
+    opts.separator ""
+    opts.separator "Notes:"
+    opts.separator "    - Filters are evaluated as: set | host | (env & version & type)"
+    opts.separator "    - The HOST, MACHINE, and TYPE arguments are regular expressions (not globs)"
+    opts.separator "    - The default filter selects all hosts"
+
+    begin
+        @original_args = ARGV.join(" ")
+        @args = opts.parse! ARGV
+        @filter[:command] = @original_args
+    rescue Exception => msg
+        puts opts
+        puts msg
+        exit 1
+    end
+end
+
+def parse_command_line
+    begin
+        @options[:config_from_file] = Galaxy::Config::read_config_file(@options[:config_file])
+        get_command
+        abort(usage_message) if @options[:help_requested]
+        validate_options
+    rescue CommandLineError => e
+        puts usage_message if @command_class
+        $stderr.puts "Error: #{e}" unless e.message.empty?
+        exit(1)
+    end
+end
+
+def get_command
+    command_name = @args.shift
+    unless @options[:help_requested]
+        raise CommandLineError.new("Missing command") if command_name.nil?
+    end
+
+    unless command_name.nil?
+        @command_class = Galaxy::Commands[command_name]
+        if @command_class.nil?
+            raise CommandLineError.new("Unrecognized command: #{command_name}")
+        end
+        @command = @command_class.new(@args, @options)
+    end
+
+    # If a host is removed from dns, it should then be possible to reap it from the gonsole, without
+    # having to restart the gonsole. Don't bail out if the DNS does not exist anymore.
+    # See GAL-290.
+    begin
+        @filter[:host] = canonical_hostname(@filter[:host]) if @filter[:host]
+    rescue Exception => e
+        raise CommandLineError.new("DNS error: #{e}") unless command_name == "reap"
+        @filter[:host] = @filter[:host]
+    end
+    begin
+        @filter[:machine] = canonical_hostname(@filter[:machine]) if @filter[:machine]
+    rescue Exception => e
+        raise CommandLineError.new("DNS error: #{e}") unless command_name == "reap"
+        @filter[:machine] = @filter[:machine]
+    end
+    begin
+        @options[:cohabitant_host] = canonical_hostname(@options[:cohabitant_host]) if @options[:cohabitant_host]
+    rescue Exception => e
+        raise CommandLineError.new("DNS error: #{e}") unless command_name == "reap"
+        @options[:cohabitant_host] = @options[:cohabitant_host]
+    end
+end
+
+def validate_options
+    console_url = @options[:console_url] || @options[:config_from_file]['galaxy.client.console']
+    if console_url.nil?
+        raise CommandLineError.new("Cannot determine console host; consider passing -c <console> or setting GALAXY_CONSOLE")
+    end
+    @options[:console_url] = normalize_console_url(console_url)
+    @options[:console] = Galaxy::Transport.locate(@options[:console_url])
+
+    if @options[:cohabitant_host]
+        begin
+            agents = @options[:console].agents({:host => @options[:cohabitant_host], :command => @original_args})
+            if agents.length != 1
+                raise "Found #{agents.length} agents matching #{@options[:cohabitant_host]}"
+            end
+            @filter[:machine] = agents[0].machine
+        rescue Exception => e
+            raise "Unable to determine machine for host #{@options[:cohabitant_host]}: #{e}"
+        end
+    end
+end
+
+def usage_message
+    @opts.separator ""
+
+    if @command_class.nil?
+        @opts.separator "Commands:"
+        Galaxy::Commands.each do |command_name|
+            @opts.separator "    #{command_name}"
+        end
+    else
+        @opts.separator "Usage for '#{@command_class.name}':"
+
+        help = @command_class.help
+        indent = help.scan(/^\s+/).first
+
+        help.split("\n").each do |line|
+            @opts.separator line.gsub(/^#{indent}/, "    ")
+        end
+    end
+    @opts.to_s
+end
+
+def get_agents
+    @agents = @command.select_agents(@filter)
+rescue Exception => e
+    abort("Error: #{e}")
+end
+
+def validate_agents
+    # If command is show-console, it's okay not to have found any agent
+    if @agents.length == 0 and @command.class.name != "show-console"
+        abort("No agents matching the provided filter(s) were available for #{@command.class.name}")
+    elsif @agents.length > 1 and (@command.changes_agent_state or @command.changes_console_state) and not@options[:implicit_confirmation]
+        abort unless prompt_and_wait_for_user_confirmation("#{@agents.length} agents will be affected; continue? (y/n) ")
+    end
+    locate_agent_proxies # AgentProxy should provide this instead of having to instantiate it here
+end
+
+def locate_agent_proxies
+    @agents.each { |agent| agent.proxy = Galaxy::Transport.locate(agent.url) if agent.url }
+end
+
+def run_command
+    user = Galaxy::HostUtils::shell_user || 'unknown'
+    message = "#{user} ran: galaxy " + @original_args
+    stdout, stderr = @command.execute(@agents)
+    puts stdout unless stdout.nil?
+    $stderr.puts stderr unless stderr.nil?
+end
+
+exit(0) if @options[:version_requested]
+parse_command_line
+get_agents
+validate_agents
+run_command

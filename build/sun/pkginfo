@@ -1,0 +1,11 @@
+PKG="galaxy"
+NAME="Galaxy :: Lightweight Code Deployment"
+DESC="Galaxy is a lightweight software deployment and management tool."
+SUNW_PKG_ALLZONES=true
+BASEDIR=/
+VERSION="3.0.0"
+ARCH="all"
+CLASSES="none"
+CATEGORY="application"
+VENDOR="Ning, Inc."
+EMAIL="pierre@ning.com"

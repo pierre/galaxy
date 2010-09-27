@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+
+rest = OptionParser.new do |opts|
+  opts.on("--base BASE") { |arg| @core_base = arg }
+  opts.on("--config-path PATH") { |arg| @config_path = arg }
+  opts.on("--repository URL") { |arg| @repository_base = arg }
+end.parse! ARGV
+
+command = rest.shift
+
+case command
+when 'test-success'
+  exit! 0
+when 'test-failure'
+  exit! 1
+when 'test-arguments'
+  if (@core_base and 
+      File.join(@core_base, 'bin', 'control') == File.expand_path(__FILE__) and
+      @config_path == '/test/config/path' and
+      @repository_base == 'http://repository/base')
+    exit! 0
+  else
+    exit! 1
+  end
+else
+  exit! 2
+end

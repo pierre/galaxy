@@ -1,0 +1,123 @@
+#!/usr/bin/env ruby
+require 'optparse'
+require 'ostruct'
+
+tried = false
+begin
+    require 'galaxy/console'
+    require 'galaxy/proxy_console'
+    require 'galaxy/config'
+    require 'galaxy/daemon'
+    require 'galaxy/host'
+    require 'galaxy/version'
+rescue LoadError
+    tried = true
+    $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
+    tried ? raise : retry
+end
+
+action = "help"
+command_line_options = OpenStruct.new
+opts = OptionParser.new do |opts|
+    opts.banner = "Usage: #{$0} <command> [options]"
+
+    opts.separator "  Commands, use just one of these"
+    opts.on("-s", "--start", "Start the console") { action = "start" }
+    opts.on("-P", "--start-proxy", "Start the proxy console") { action = "start-proxy" }
+    opts.on("-k", "--stop", "Stop the console") { action = "stop" }
+
+    opts.separator "  Options for Start"
+    opts.on("-C", "--config FILE", "Configuration file (overrides GALAXY_CONFIG)") do |arg|
+        command_line_options.config_file = arg
+    end
+    opts.on("-i", "--host HOST", "Hostname this console runs on") do |host|
+        command_line_options.host = host
+    end
+    opts.on("-a", "--announcement-url HOST[:PORT]", "Port for Http post announcements") do |ann_host|
+        command_line_options.announcement_url = ann_host
+    end
+    opts.on("-p", "--ping-interval INTERVAL", "How many seconds an agent can be silent before being marked dead") do |interval|
+        command_line_options.ping_interval = interval
+    end
+    opts.on("-f", "--fore", "--foreground", "Run console in the foreground") do
+        command_line_options.foreground = true
+    end
+    opts.on("-Q", "--console-proxied-url URL", "Gonsole to proxy") do |host|
+        command_line_options.console_proxyied_url = host
+    end
+
+
+    opts.separator "  General Options"
+    opts.on_tail("-l", "--log LOG", "STDOUT | STDERR | SYSLOG | /path/to/file.log") do |log|
+        command_line_options.log = log
+    end
+    opts.on_tail("-L", "--log-level LEVEL", "DEBUG | INFO | WARN | ERROR. Default=INFO") do |level|
+        command_line_options.log_level = level
+    end
+    opts.on_tail("-g", "--console-log FILE", "File agent should rediect stdout and stderr to") do |log|
+        command_line_options.agent_log = log
+    end
+    opts.on_tail("-u", "--user USER", "User to run as") do |arg|
+        command_line_options.user = arg
+    end
+    opts.on("-z", "--event_listener URL", "Which listener to use") do |event_listener|
+        command_line_options.event_listener = event_listener
+    end
+    opts.on_tail("-t", "--test", "Test, displays as -v without doing anything") do
+        command_line_options.verbose = true
+        command_line_options.test = true
+    end
+    opts.on_tail("-v", "--verbose", "Verbose output") { command_line_options.verbose = true }
+    opts.on_tail("-V", "--version", "Print the galaxy version and exit") { action = "version" }
+    opts.on_tail("-h", "--help", "Show this help") { action = "help" }
+
+    begin
+        opts.parse! ARGV
+    rescue Exception => msg
+        puts opts
+        puts msg
+        exit 1
+    end
+end
+
+case action
+    when "help"
+        puts opts
+        exit
+
+    when "version"
+        puts "Galaxy version #{Galaxy::Version}"
+
+    when "start"
+        config = Galaxy::ConsoleConfigurator.new(command_line_options).configure
+        exit if command_line_options.test
+        if command_line_options.foreground
+            console = Galaxy::Console.start config
+            console.join
+        else
+            Galaxy::Daemon.start('galaxy-console', config[:pid_file], config[:user]) do
+                console = Galaxy::Console.start(config)
+                console.join
+            end
+        end
+    when "start-proxy"
+        config = Galaxy::ConsoleConfigurator.new(command_line_options).configure
+        exit if command_line_options.test
+        if command_line_options.foreground
+            console = Galaxy::ProxyConsole.start config
+            console.join
+        else
+            Galaxy::Daemon.start('galaxy-proxy-console', config[:pid_file], config[:user]) do
+                console = Galaxy::ProxyConsole.start(config)
+                console.join
+            end
+        end
+    when "stop"
+        config = Galaxy::ConsoleConfigurator.new(command_line_options).configure
+        begin
+            Galaxy::Daemon.kill_daemon(config[:pid_file])
+        rescue Exception => e
+            abort("Error: #{e}")
+        end
+
+end

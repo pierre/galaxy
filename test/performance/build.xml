@@ -1,0 +1,63 @@
+<project name="galaxy-loader" basedir="." default="main">
+	<property name="src.dir" value="src" />
+	<property name="lib.dir" value="lib" />
+	<property name="build.dir" value="/tmp/galaxy-loader" />
+	<property name="classes.dir" value="${build.dir}/classes" />
+	<property name="jar.dir" value="${build.dir}" />
+	<property name="main-class" value="LoadTest" />
+
+	<path id="classpath">
+		<fileset dir="${lib.dir}" includes="**/*.jar">
+			<exclude name="**/*javadoc*" />
+		</fileset>
+	</path>
+
+	<target name="clean">
+		<delete dir="${build.dir}" />
+	</target>
+
+	<target name="compile">
+		<mkdir dir="${classes.dir}" />
+		<javac fork="true" srcdir="${src.dir}" destdir="${classes.dir}" classpathref="classpath" />
+	</target>
+
+	<target name="jar" depends="compile">
+		<jar destfile="${jar.dir}/${ant.project.name}.jar">
+			<manifest>
+				<attribute name="Main-Class" value="${main-class}" />
+			</manifest>
+			<fileset dir="${classes.dir}">
+				<exclude name="**/*Test*" />
+			</fileset>
+		</jar>
+	</target>
+
+	<target name="one-jar" depends="compile">
+		<taskdef name="one-jar" classname="com.simontuffs.onejar.ant.OneJarTask" classpath="${lib.dir}/one-jar-ant-task-0.96.jar" onerror="report" />
+		<one-jar destfile="${jar.dir}/${ant.project.name}.jar">
+			<manifest>
+				<attribute name="Main-Class" value="com.simontuffs.onejar.Boot" />
+				<attribute name="One-Jar-Main-Class" value="LoadTest" />
+			</manifest>
+			<main>
+				<fileset dir="${classes.dir}" />
+			</main>
+			<lib>
+				<fileset dir="${lib.dir}" />
+			</lib>
+		</one-jar>
+	</target>
+
+	<target name="run" depends="jar">
+		<java fork="true" classname="${main-class}">
+			<classpath>
+				<path refid="classpath" />
+				<path location="${jar.dir}/${ant.project.name}.jar" />
+			</classpath>
+		</java>
+	</target>
+
+	<target name="clean-build" depends="clean,jar" />
+	<target name="main" depends="clean-build,one-jar" />
+
+</project>

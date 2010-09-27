@@ -1,0 +1,31 @@
+#!/bin/bash -l
+#
+# Determines whether Galaxy can be installed on this host
+#
+
+#
+# Reinvoke under bash to configure PATH
+#
+if [ -z "$BASH" ]
+then
+    exec /bin/bash -l $0 $*
+fi
+
+# This script is run by nobody, who may not have ruby on the PATH
+PATH="/usr/local/bin:$PATH"
+
+RUBY_VERSION=`ruby --version`
+
+if [ -z "$RUBY_VERSION" ]
+then
+    echo "Error: This package requires Ruby"
+    exit 1
+fi
+
+GEM_VERSION=`gem --version`
+
+if [ -z "$GEM_VERSION" ]
+then
+    echo "Error: This package requires RubyGems"
+    exit 1
+fi
