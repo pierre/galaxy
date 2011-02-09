@@ -189,6 +189,10 @@ Launcher can be invoked directly from the command line, allowing cores to be con
 
 = How-To
 
+== Dependencies
+
+Mongrel gem.
+
 == Getting started
 
 You can run a Gonsole and an agent locally. In two different terminals, run:
