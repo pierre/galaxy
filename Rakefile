@@ -24,6 +24,27 @@ GEM_VERSION = PACKAGE_VERSION.split('-')[0]
 
 task :default => [:test]
 
+task :install do
+  sitelibdir = CONFIG["sitelibdir"]
+  cd 'lib' do
+    for file in Dir["galaxy/*.rb", "galaxy/commands/*.rb" ]
+      d = File.join(sitearchdir, file)
+      mkdir_p File.dirname(d)
+      install(file, d)
+    end
+  end
+
+  bindir = CONFIG["bindir"]
+  cd 'bin' do
+    for file in ["galaxy", "galaxy-agent", "galaxy-console" ]
+      d = File.join(bindir, file)
+      mkdir_p File.dirname(d)
+      install(file, d)
+    end
+  end
+end
+
+
 Rake::TestTask.new("test") do |t|
   t.pattern = 'test/test*.rb'
   t.libs << 'test'
@@ -55,6 +76,10 @@ spec = Gem::Specification.new do |s|
   s.files =  FileList["lib/galaxy/**/*.rb", "bin/*"]
   s.executables = FileList["galaxy-agent", "galaxy-console", "galaxy"]
   s.require_path = "lib"
+  s.add_dependency("fileutils", ">= 0.7")
+  s.add_dependency("json", ">= 1.5.1")
+  s.add_dependency("mongrel", ">= 1.1.5")
+  s.add_dependency("rcov", ">= 0.9.9")
 end
 
 Rake::GemPackageTask.new(spec) do |pkg|
