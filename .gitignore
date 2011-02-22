@@ -10,3 +10,4 @@ pkg/
 *.iws
 coverage/
 target/
+.rakeTasks
