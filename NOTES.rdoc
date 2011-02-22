@@ -1,0 +1,116 @@
+= Galaxy config file
+
+All programs can load defaults from a config file. Locations for this
+file are set by the command line (--config / -C option), GALAXY_CONFIG
+environment variable, /etc/galaxy.conf or /usr/local/etc/galaxy.conf.
+
+The config file contains a YAML structure:
+
+host                galaxy.agent.host                   galaxy.console.host
+machine             galaxy.agent.machine
+console             galaxy.agent.console
+repository          galaxy.agent.config-root
+binaries            galaxy.agent.binaries-root
+deploy_dir          galaxy.agent.deploy-dir
+verbose
+data_dir            galaxy.agent.data-dir
+log                 galaxy.agent.log                    galaxy.console.log
+log_level           galaxy.agent.log-level              galaxy.console.log-level
+pid_file            galaxy-agent.pid-file               galaxy.console.pid-file
+user                galaxy.agent.user                   galaxy.console.user
+announce_interval   galaxy.agent.announce-interval
+event_listener      galaxy.agent.event_listener         galaxy.console.event_listener
+announcement_url                                        galaxy.console.announcement-url
+ping_interval                                           galaxy.console.ping-interval
+environment                                             galaxy.console.environment
+
+
+= Communication
+
+Agent --> Console:
+
+console announces HTTP over port 4442 by default, only HTTP possible.
+config must contain "http://", otherwise error. "druby://" is accepted but fails at runtime.
+
+agent config: galaxy.agent.console
+console config: galaxy.console.announcement-url
+
+Command line --> Console
+
+Uses port 4440 by default, druby protocol, only druby seems to be possible.
+
+command line config: galaxy.client.console
+console config:
+
+console.rb suggests that this URL is configurable (see
+
+def Console.start args
+            host = args[:host] || "localhost"
+            drb_url = args[:url] || "druby://" + host # DRB transport
+
+), however this is called only in a single location (bin/galaxy-console) with a config object that comes out of Galaxy::ConsoleConfigurator#configure, which in turn
+
+({
+    :environment => guess(:environment),
+    :verbose => @config.verbose || false,
+    :log => guess(:log),
+    :log_level => guess(:log_level),
+    :pid_file => guess(:pid_file),
+    :user => guess(:user),
+    :host => guess(:host),
+    :announcement_url => guess(:announcement_url),
+    :ping_interval => guess(:ping_interval),
+    :console_proxyied_url => guess(:console_proxyied_url),
+    :event_listener => guess(:event_listener)
+})
+
+never sets the :uri parameters. So it seems to be non-configurable.
+
+Command line -> Agent communication
+
+command line config: Takes information from the console
+agent config: galaxy.agent.host, defaults to druby, port 4441
+
+Another port can be given: druby://<hostname>:5555
+
+Using HTTP as protocol fails:
+
+gems/galaxy-3.0.0/lib/galaxy/transport.rb:114:in `publish': Galaxy::Agent doesn't contain 'process_post' and 'process_get' methods (TypeError)
+
+Only druby possible.
+
+
+= sample config file
+
+#
+# Console
+#
+galaxy.console.host:             localhost
+galaxy.console.ping-interval:    60
+galaxy.console.log:              STDOUT
+galaxy.console.log-level:        DEBUG
+galaxy.console.pid-file:         /tmp/galaxy/console.pid
+galaxy.console.announcement-url: http://localhost
+#
+# Agent
+#
+galaxy.agent.host:               localhost
+galaxy.agent.machine:            localhost
+galaxy.agent.console:            http://localhost
+galaxy.agent.deploy-dir:         /tmp/galaxy/deploy
+galaxy.agent.data-dir:           /tmp/galaxy/data
+galaxy.agent.log:                STDOUT
+galaxy.agent.log-level:          DEBUG
+galaxy.agent.pid_file:           /tmp/galaxy/agent.pid
+galaxy.agent.announce-interval:  30
+#
+# These URIs must be adjusted!
+galaxy.agent.config-root:        http://config-server/config
+galaxy.agent.binaries-root:      http://config-server/binaries
+#
+# Command line
+#
+galaxy.client.console:           druby://localhost:4440
+
+
+
