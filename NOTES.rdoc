@@ -112,5 +112,18 @@ galaxy.agent.binaries-root:      http://config-server/binaries
 #
 galaxy.client.console:           druby://localhost:4440
 
+= xndeploy API
 
+xndeploy is responsible for installing a deployable unit in a location
+and make it ready to run.
 
+xndeploy is called like this:
+
+xndeploy --base BASE                    - Actual installation location
+         --binaries URL                 - URL from which the binary
+                                           was loaded
+         --config-path PATH             - env/version/type PATH
+         --repository URL               - URL from which config is 
+                                          loaded
+
+(see galaxy/deployer.rb)
