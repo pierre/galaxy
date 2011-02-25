@@ -71,6 +71,12 @@ opts = OptionParser.new do |opts|
     opts.on("-z", "--event_listener URL", "Which listener to use") do |event_listener|
         command_line_options.event_listener = event_listener
     end
+    opts.on("-H", "--http-user USER", "HTTP User for authentication.") do |http_user|
+        command_line_options.http_user = http_user
+    end
+    opts.on("-P", "--http-password PASSWORD", "HTTP Password for authentication.") do |http_password|
+        command_line_options.http_password = http_password
+    end
     opts.on_tail("-g", "--agent-log FILE", "File agent should rediect stdout and stderr to") do |log|
         command_line_options.agent_log = log
     end
