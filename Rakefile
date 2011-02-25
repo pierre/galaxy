@@ -25,16 +25,16 @@ GEM_VERSION = PACKAGE_VERSION.split('-')[0]
 task :default => [:test]
 
 task :install do
-  sitelibdir = CONFIG["sitelibdir"]
+  sitelibdir = Config::CONFIG["sitelibdir"]
   cd 'lib' do
     for file in Dir["galaxy/*.rb", "galaxy/commands/*.rb" ]
-      d = File.join(sitearchdir, file)
+      d = File.join(sitelibdir, file)
       mkdir_p File.dirname(d)
       install(file, d)
     end
   end
 
-  bindir = CONFIG["bindir"]
+  bindir = Config::CONFIG["bindir"]
   cd 'bin' do
     for file in ["galaxy", "galaxy-agent", "galaxy-console" ]
       d = File.join(bindir, file)
