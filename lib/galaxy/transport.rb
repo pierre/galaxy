@@ -114,7 +114,12 @@ module Galaxy
                 raise TypeError.new("#{obj.class.name} doesn't contain 'process_post' and 'process_get' methods")
             end
             return @servers[url] if @servers[url]
-            @servers[url] = Galaxy::HTTPServer.new(url, obj)
+            begin
+                 @servers[url] = Galaxy::HTTPServer.new(url, obj)
+            rescue NameError
+                 raise NameError.new("Unable to create the http server. Is mongrel installed?")
+            end
+            return @servers[url]
         end
 
         def unpublish url
