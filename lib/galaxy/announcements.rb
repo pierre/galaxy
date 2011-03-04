@@ -186,6 +186,7 @@ class HTTPAnnouncementSender
         rescue Exception => e
             # If the json gem is not loaded, we will log the issue here.
             @log.warn "Client side error: #{e}" if @log
+            return []
         end
     end
 
