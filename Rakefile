@@ -76,7 +76,6 @@ spec = Gem::Specification.new do |s|
   s.files =  FileList["lib/galaxy/**/*.rb", "bin/*"]
   s.executables = FileList["galaxy-agent", "galaxy-console", "galaxy"]
   s.require_path = "lib"
-  s.add_dependency("fileutils", ">= 0.7")
   s.add_dependency("json", ">= 1.5.1")
   s.add_dependency("mongrel", ">= 1.1.5")
   s.add_dependency("rcov", ">= 0.9.9")
