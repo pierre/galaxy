@@ -16,6 +16,7 @@ module Galaxy
 
                 command = "#{launcher_path} --slot-info #{@db.file_for('slot_info')} #{action.to_s.chomp('!')}"
                 @log.debug "Running #{command}"
+                exitstatus = 0
                 begin
                     output = Galaxy::HostUtils.system command
                     @log.debug "#{command} returned: #{output}"
@@ -23,9 +24,9 @@ module Galaxy
                     case action
                         when :start!
                         when :restart!
+                        when :status
                             return "running"
                         when :stop!
-                        when :status
                             return "stopped"
                         else
                             return "unknown"
@@ -33,13 +34,17 @@ module Galaxy
                 rescue Galaxy::HostUtils::CommandFailedError => e
                     # status is special
                     if action == :status
-                        if e.exitstatus == 1
-                            return "running"
+                        # 1 program is dead and /var/run pid file exists
+                        # 2 program is dead and /var/lock lock file exists
+                        # 3 program is not running
+                        if e.exitstatus >= 1 && e.exitstatus <= 3
+                            return "stopped"
                         else
                             return "unknown"
                         end
                     end
 
+                    # non-zero from all other commands is an error
                     @log.warn "Unable to #{action}: #{e.message}"
                     raise e
                 end
