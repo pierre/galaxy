@@ -54,7 +54,7 @@ module Galaxy
             @announce_interval = announce_interval
             @prop_builder = Galaxy::Properties::Builder.new repository_base, @http_user, @http_password, @logger
             @repository = Galaxy::Repository.new repository_base, @logger
-            @deployer = Galaxy::Deployer.new deploy_dir, @logger
+            @deployer = Galaxy::Deployer.new deploy_dir, @logger, @machine, @host
             @fetcher = Galaxy::Fetcher.new binaries_base, @http_user, @http_password, @logger
             @starter = Galaxy::Starter.new @logger
             @db = Galaxy::DB.new data_dir
