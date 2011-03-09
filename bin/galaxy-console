@@ -54,7 +54,7 @@ opts = OptionParser.new do |opts|
     opts.on_tail("-L", "--log-level LEVEL", "DEBUG | INFO | WARN | ERROR. Default=INFO") do |level|
         command_line_options.log_level = level
     end
-    opts.on_tail("-g", "--console-log FILE", "File agent should rediect stdout and stderr to") do |log|
+    opts.on_tail("-g", "--console-log FILE", "File agent should redirect stdout and stderr to") do |log|
         command_line_options.agent_log = log
     end
     opts.on_tail("-u", "--user USER", "User to run as") do |arg|
