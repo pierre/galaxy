@@ -139,6 +139,7 @@ module Galaxy
 
         def shutdown
             Galaxy::Transport.unpublish @http_url
+            Galaxy::Transport.unpublish @drb_url
         end
 
         def join
