@@ -18,8 +18,8 @@ module Galaxy
         end
 
         class Builder
-            def initialize base, http_user, http_password, log=Logger.new(STDOUT)
-                @base = base
+            def initialize(base, http_user, http_password, log=Logger.new(STDOUT))
+              @base = base
                 @log = log
                 if !http_user.nil? && !http_password.nil?
                   @http_auth = {:http_basic_authentication =>[http_user, http_password]}
@@ -36,7 +36,7 @@ module Galaxy
                       url = "#{@base}#{history.join("/")}/#{file_name}"
                       @log.debug "Fetching #{url}"
 
-                      auth = {}
+                      auth = nil
                       begin
                         fetch_done = true
                         open(url, auth) do |io|
