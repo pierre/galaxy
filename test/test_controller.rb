@@ -17,9 +17,9 @@ class TestController < Test::Unit::TestCase
       #{Galaxy::HostUtils.tar} -C #{File.join(File.dirname(__FILE__), "core_package")} -czf #{@core_package} . 
     }
     @path = Helper.mk_tmpdir
-    @deployer = Galaxy::Deployer.new @path, Logger.new("/dev/null")
+    @deployer = Galaxy::Deployer.new @path, Logger.new("/dev/null"), "machine", "host"
     @core_base = @deployer.deploy "1", @core_package, "/config", "/repository", "/binaries"
-    @controller = Galaxy::Controller.new @core_base, '/config/path', 'http://repository/base', 'http://binaries/base', Logger.new("/dev/null")
+    @controller = Galaxy::Controller.new @core_base, '/config/path', 'http://repository/base', 'http://binaries/base', Logger.new("/dev/null"), "machine", "host"
   end
   
   def test_perform_success

@@ -12,8 +12,8 @@ include WEBrick
 class TestFetcher < Test::Unit::TestCase
 
   def setup
-    @local_fetcher = Galaxy::Fetcher.new(File.join(File.dirname(__FILE__), "property_data"), Logger.new("/dev/null"))
-    @http_fetcher = Galaxy::Fetcher.new("http://localhost:7777", Logger.new("/dev/null"))
+    @local_fetcher = Galaxy::Fetcher.new(File.join(File.dirname(__FILE__), "property_data"), nil, nil, Logger.new("/dev/null"))
+    @http_fetcher = Galaxy::Fetcher.new("http://localhost:7777", nil, nil, Logger.new("/dev/null"))
 
     webrick_logger =  Logger.new(STDOUT)
     webrick_logger.level = Logger::WARN

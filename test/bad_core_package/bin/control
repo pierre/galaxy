@@ -6,6 +6,8 @@ rest = OptionParser.new do |opts|
   opts.on("--base BASE") { |arg| @core_base = arg }
   opts.on("--config-path PATH") { |arg| @config_path = arg }
   opts.on("--repository URL") { |arg| @repository_base = arg }
+  opts.on("--machine machine") { |machine| @machine = machine }
+  opts.on("--host host") { |host| @host = host }
 end.parse! ARGV
 
 command = rest.shift

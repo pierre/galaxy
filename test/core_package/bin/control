@@ -7,6 +7,8 @@ rest = OptionParser.new do |opts|
   opts.on("--binaries BINARIES") { |arg| @binaries_base = arg }
   opts.on("--config-path PATH") { |arg| @config_path = arg }
   opts.on("--repository URL") { |arg| @repository_base = arg }
+  opts.on("--machine machine") { |machine| @machine = machine }
+  opts.on("--host host") { |host| @host = host }
 end.parse! ARGV
 
 command = rest.shift

@@ -8,6 +8,8 @@ OptionParser.new do |opts|
   opts.on("--binaries BINARIES") { |arg| BinariesBase = arg }
   opts.on("--config-path PATH") { |arg| ConfigPath = arg }
   opts.on("--repository URL") { |arg| Repository = arg }
+  opts.on("--machine machine") { |machine| Machine = machine }
+  opts.on("--host host") { |host| Host = host }
 end.parse! ARGV
 
 # for test_xndeploy_invoked_on_deploy
@@ -17,6 +19,8 @@ begin
     :config_path => ConfigPath,
     :repository => Repository,
     :binaries_base => BinariesBase,
+    :machine => Machine,
+    :host => Host,
   }
   File.open(File.join(DeployBase, "xndeploy_touched_me"), "w") do |file|
     Marshal.dump(dump, file)

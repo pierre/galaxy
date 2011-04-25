@@ -31,9 +31,12 @@ class TestClient < Test::Unit::TestCase
 
   def test_show_console
     console = Galaxy::Console.start({ :host => 'localhost' })
-    output = `#{GALAXY} show-console -c localhost 2>&1`
-    assert_match("druby://localhost:4440\thttp://localhost:4442\tlocalhost\t-\t5\n", output)
-    console.shutdown
+    begin
+      output = `#{GALAXY} show-console -c localhost 2>&1`
+      assert_match("druby://localhost:4440\thttp://localhost:4442\tlocalhost\t-\t5\n", output)
+    ensure
+      console.shutdown unless console.nil?
+    end
   end
 
   def test_show_with_console_from_environment
@@ -60,11 +63,17 @@ class TestClient < Test::Unit::TestCase
 
   def test_show_with_one_agent
     console = Galaxy::Console.start({ :host => 'localhost', :log_level => Logger::WARN })
-    agent = Galaxy::Agent.start({ :host => 'localhost', :console => 'localhost', :log_level => Logger::WARN })
-    output = `#{GALAXY} -c localhost show 2>&1`.split("\n")
-    assert_equal(1, output.length)
-    assert_match("No agents matching the provided filter(s) were available for show", output[0])
-    agent.shutdown
-    console.shutdown
+    begin
+      agent = Galaxy::Agent.start({ :host => 'localhost', :console => 'localhost', :log_level => Logger::WARN })
+      begin
+        output = `#{GALAXY} -c localhost show -i localhost 2>&1`.split("\n")
+        assert_equal(1, output.length)
+        assert_match("No agents matching the provided filter(s) were available for show", output[0])
+      ensure
+        agent.shutdown unless agent.nil?
+      end
+    ensure
+      console.shutdown unless console.nil?
+    end
   end
 end
