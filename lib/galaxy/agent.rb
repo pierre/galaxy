@@ -30,10 +30,12 @@ module Galaxy
         include Galaxy::AgentRemoteApi
 
         def initialize host, url, machine, announcements_url, repository_base, deploy_dir,
-            data_dir, binaries_base, log, log_level, announce_interval, event_listener
+            data_dir, binaries_base, http_user, http_password, log, log_level, announce_interval, event_listener
             @drb_url = url
             @host = host
             @machine = machine
+            @http_user = http_user
+            @http_password = http_password
             @ip = Resolv.getaddress(@host)
 
             # Setup the logger and the event dispatcher (HDFS) if needed
@@ -50,10 +52,10 @@ module Galaxy
             @event_dispatcher = Galaxy::GalaxyEventSender.new(event_listener, @gonsole_url, @ip, @logger)
 
             @announce_interval = announce_interval
-            @prop_builder = Galaxy::Properties::Builder.new repository_base, @logger
+            @prop_builder = Galaxy::Properties::Builder.new repository_base, @http_user, @http_password, @logger
             @repository = Galaxy::Repository.new repository_base, @logger
             @deployer = Galaxy::Deployer.new deploy_dir, @logger
-            @fetcher = Galaxy::Fetcher.new binaries_base, @logger
+            @fetcher = Galaxy::Fetcher.new binaries_base, @http_user, @http_password, @logger
             @starter = Galaxy::Starter.new @logger
             @db = Galaxy::DB.new data_dir
             @repository_base = repository_base
@@ -244,6 +246,8 @@ module Galaxy
                               args[:deploy_dir] || "/tmp/galaxy-agent-deploy",
                               args[:data_dir] || "/tmp/galaxy-agent-data",
                               args[:binaries] || "http://localhost:8000",
+                              args[:http_user],
+                              args[:http_password],
                               args[:log] || "STDOUT",
                               args[:log_level] || Logger::INFO,
                               args[:announce_interval] || 60,

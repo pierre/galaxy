@@ -139,7 +139,9 @@ module Galaxy
                 :pid_file => guess(:pid_file),
                 :user => guess(:user),
                 :announce_interval => guess(:announce_interval),
-                :event_listener => guess(:event_listener)
+                :event_listener => guess(:event_listener),
+                :http_user => guess(:http_user),
+                :http_password => guess(:http_password),
             }
         end
 
@@ -199,6 +201,14 @@ module Galaxy
 
         def event_listener
             @event_listener ||= @config.event_listener || @config_from_file['galaxy.agent.event_listener']
+        end
+
+        def http_user
+            @http_user ||= @config.http_user || @config_from_file['galaxy.agent.http_user']
+        end
+
+        def http_password
+            @http_password ||= @config.http_password || @config_from_file['galaxy.agent.http_password']
         end
     end
 
