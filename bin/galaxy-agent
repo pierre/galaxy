@@ -77,14 +77,12 @@ opts = OptionParser.new do |opts|
     opts.on("-P", "--http-password PASSWORD", "HTTP Password for authentication.") do |http_password|
         command_line_options.http_password = http_password
     end
-    opts.on_tail("-g", "--agent-log FILE", "File agent should rediect stdout and stderr to") do |log|
-        command_line_options.agent_log = log
-    end
 
     opts.on_tail("-t", "--test", "Test, displays as -v without doing anything") do
         command_line_options.verbose = true
         command_line_options.test = true
     end
+
     opts.on_tail("-v", "--verbose", "Verbose output") { command_line_options.verbose = true }
     opts.on_tail("-V", "--version", "Print the galaxy version and exit") { action = "version" }
     opts.on_tail("-h", "--help", "Show this help") { action = "help" }

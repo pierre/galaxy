@@ -54,9 +54,7 @@ opts = OptionParser.new do |opts|
     opts.on_tail("-L", "--log-level LEVEL", "DEBUG | INFO | WARN | ERROR. Default=INFO") do |level|
         command_line_options.log_level = level
     end
-    opts.on_tail("-g", "--console-log FILE", "File agent should redirect stdout and stderr to") do |log|
-        command_line_options.agent_log = log
-    end
+
     opts.on_tail("-u", "--user USER", "User to run as") do |arg|
         command_line_options.user = arg
     end
@@ -67,6 +65,7 @@ opts = OptionParser.new do |opts|
         command_line_options.verbose = true
         command_line_options.test = true
     end
+
     opts.on_tail("-v", "--verbose", "Verbose output") { command_line_options.verbose = true }
     opts.on_tail("-V", "--version", "Print the galaxy version and exit") { action = "version" }
     opts.on_tail("-h", "--help", "Show this help") { action = "help" }
