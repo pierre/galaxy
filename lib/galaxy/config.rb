@@ -245,13 +245,13 @@ module Galaxy
                 :host => guess(:host),
                 :announcement_url => guess(:announcement_url),
                 :ping_interval => guess(:ping_interval),
-                :console_proxyied_url => guess(:console_proxyied_url),
+                :console_proxied_url => guess(:console_proxied_url),
                 :event_listener => guess(:event_listener)
             }
         end
 
-        def console_proxyied_url
-            return @config.console_proxyied_url
+        def console_proxied_url
+            return @config.console_proxied_url
         end
 
         def log

@@ -43,7 +43,7 @@ opts = OptionParser.new do |opts|
         command_line_options.foreground = true
     end
     opts.on("-Q", "--console-proxied-url URL", "Gonsole to proxy") do |host|
-        command_line_options.console_proxyied_url = host
+        command_line_options.console_proxied_url = host
     end
 
 
