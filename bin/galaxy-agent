@@ -15,7 +15,7 @@ require 'optparse'
 require 'ostruct'
 
 action = "help"
-command_line_options = OpenStruct.new
+command_line_options = OpenStruct.new( :verbose => false, :test => false, :foreground => false )
 opts = OptionParser.new do |opts|
     opts.banner = "Usage: #{$0} <command> [options]"
 

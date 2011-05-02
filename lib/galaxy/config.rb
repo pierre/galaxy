@@ -132,7 +132,7 @@ module Galaxy
                 :repository => guess(:repository),
                 :binaries => guess(:binaries),
                 :deploy_dir => guess(:deploy_dir),
-                :verbose => @config.verbose || false,
+                :verbose => guess(:verbose),
                 :data_dir => guess(:data_dir),
                 :log => guess(:log),
                 :log_level => guess(:log_level),
@@ -237,7 +237,7 @@ module Galaxy
             puts "startup configuration" if @config.verbose
             {
                 :environment => guess(:environment),
-                :verbose => @config.verbose || false,
+                :verbose => guess(:verbose),
                 :log => guess(:log),
                 :log_level => guess(:log_level),
                 :pid_file => guess(:pid_file),
