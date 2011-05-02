@@ -46,7 +46,6 @@ opts = OptionParser.new do |opts|
         command_line_options.console_proxied_url = host
     end
 
-
     opts.separator "  General Options"
     opts.on_tail("-l", "--log LOG", "STDOUT | STDERR | SYSLOG | /path/to/file.log") do |log|
         command_line_options.log = log
@@ -99,6 +98,7 @@ case action
                 console.join
             end
         end
+
     when "start-proxy"
         config = Galaxy::ConsoleConfigurator.new(command_line_options).configure
         exit if command_line_options.test
@@ -111,6 +111,7 @@ case action
                 console.join
             end
         end
+
     when "stop"
         config = Galaxy::ConsoleConfigurator.new(command_line_options).configure
         begin
@@ -118,5 +119,4 @@ case action
         rescue Exception => e
             abort("Error: #{e}")
         end
-
 end

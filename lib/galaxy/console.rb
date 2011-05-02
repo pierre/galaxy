@@ -27,14 +27,13 @@ module Galaxy
 
         def initialize drb_url, http_url, log, log_level, ping_interval, host, env, event_listener
             @host = host
-            @ip = Resolv.getaddress(@host)
             @env = env
 
             @drb_url = drb_url
             @http_url = http_url
 
             # Setup the logger and the event dispatcher (HDFS) if needed
-            @logger = Galaxy::Log::Glogger.new(log, event_listener, @http_url, @ip)
+            @logger = Galaxy::Log::Glogger.new(log, event_listener, @http_url)
             @logger.log.level = log_level
 
             @ping_interval = ping_interval
@@ -42,7 +41,7 @@ module Galaxy
             @mutex = Mutex.new
 
             # set up event listener
-            @event_dispatcher = Galaxy::GalaxyEventSender.new(event_listener, @http_url, @ip, @logger)
+            @event_dispatcher = Galaxy::GalaxyEventSender.new(event_listener, @http_url, nil, @logger)
 
             Thread.new do
                 loop do
@@ -59,9 +58,10 @@ module Galaxy
         end
 
         # Remote API
-        def reap host
+        def reap id, group
+            key = "#{id}/#{group}"
             @mutex.synchronize do
-                @db.delete host
+                @db.delete key
             end
         end
 
@@ -143,6 +143,7 @@ module Galaxy
         end
 
         def join
+            Galaxy::Transport.join @http_url
             Galaxy::Transport.join @drb_url
         end
 
@@ -151,29 +152,31 @@ module Galaxy
         # Update the agents database
         def announce announcement
             begin
-                host = announcement.host
-                @logger.debug "Received announcement from #{host}"
+                id = announcement.id
+                group = announcement.group
+                key = "#{id}/#{group}"
+                @logger.debug "Received announcement from #{id} in the #{group} group."
                 @mutex.synchronize do
-                    if @db.has_key?(host)
-                        unless @db[host].agent_status != "offline"
-                            announce_message = "#{host} is now online again"
+                    if @db.has_key?(key)
+                        unless @db[key].agent_status != "offline"
+                            announce_message = "#{key} is now online again"
                             @logger.info announce_message
                             @event_dispatcher.dispatch_announce_success_event announce_message
                         end
-                        if @db[host].status != announcement.status
-                            announce_message = "#{host} core state changed: #{@db[host].status} --> #{announcement.status}"
+                        if @db[key].status != announcement.status
+                            announce_message = "#{key} core state changed: #{@db[key].status} --> #{announcement.status}"
                             @logger.info announce_message
                             @event_dispatcher.dispatch_announce_success_event announce_message
                         end
                     else
-                        announce_message = "Discovered new agent: #{host} [#{announcement.inspect}]"
-                        @logger.info "Discovered new agent: #{host} [#{announcement.inspect}]"
+                        announce_message = "Discovered new agent: #{key} [#{announcement.inspect}]"
+                        @logger.info "Discovered new agent: #{key} [#{announcement.inspect}]"
                         @event_dispatcher.dispatch_announce_success_event announce_message
                     end
 
-                    @db[host] = announcement
-                    @db[host].timestamp = Time.now
-                    @db[host].agent_status = 'online'
+                    @db[key] = announcement
+                    @db[key].timestamp = Time.now
+                    @db[key].agent_status = 'online'
                 end
             rescue RuntimeError => e
                 error_message = "Error receiving announcement: #{e}"
@@ -185,9 +188,9 @@ module Galaxy
         # Iterate through the database to find agents that haven't pinged home
         def ping cutoff
             @mutex.synchronize do
-                @db.each_pair do |host, entry|
+                @db.each_pair do |key, entry|
                     if entry.agent_status != "offline" and entry.timestamp < cutoff
-                        error_message = "#{host} failed to announce; marking as offline"
+                        error_message = "#{key} failed to announce; marking as offline"
                         @logger.warn error_message
                         @event_dispatcher.dispatch_announce_error_event error_message
 

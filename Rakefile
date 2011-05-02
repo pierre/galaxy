@@ -102,7 +102,8 @@ namespace :run do
   task :gagent do
     system(RUBY, "-I", File.join(PWD, "lib"),
            File.join(PWD, "bin", "galaxy-agent"), "--start",
-           "-i", "localhost", "-c", "localhost",
+           "-i", "local_test", "-g", "local_group", 
+           "-U", "druby://localhost:4441", "-c", "localhost",
            "-r", "http://localhost/config/trunk/qa",
            "-b", "http://localhost/binaries",
            "-d", "/tmp/deploy", "-x", "/tmp/extract",

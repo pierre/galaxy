@@ -24,22 +24,22 @@ require 'galaxy/versioning'
 
 module Galaxy
     class Agent
-        attr_reader :host, :machine, :config, :locked, :logger, :gonsole_url
+        attr_reader :identifier, :group, :machine, :config, :locked, :logger, :gonsole_url
         attr_accessor :starter, :fetcher, :deployer, :db
 
         include Galaxy::AgentRemoteApi
 
-        def initialize host, url, machine, announcements_url, repository_base, deploy_dir,
+        def initialize identifier, group, url, machine, announcements_url, repository_base, deploy_dir,
             data_dir, binaries_base, http_user, http_password, log, log_level, announce_interval, event_listener
             @drb_url = url
-            @host = host
+            @identifier = identifier
+            @group = group
             @machine = machine
             @http_user = http_user
             @http_password = http_password
-            @ip = Resolv.getaddress(@host)
 
             # Setup the logger and the event dispatcher (HDFS) if needed
-            @logger = Galaxy::Log::Glogger.new log, event_listener, announcements_url, @ip
+            @logger = Galaxy::Log::Glogger.new log, event_listener, announcements_url
             @logger.log.level = log_level
 
             @lock = OpenStruct.new(:owner => nil, :count => 0, :mutex => Mutex.new)
@@ -49,12 +49,12 @@ module Galaxy
             @announcer = Galaxy::Transport.locate announcements_url, @logger
 
             # Setup event listener
-            @event_dispatcher = Galaxy::GalaxyEventSender.new(event_listener, @gonsole_url, @ip, @logger)
+            @event_dispatcher = Galaxy::GalaxyEventSender.new(event_listener, @gonsole_url, nil, @logger)
 
             @announce_interval = announce_interval
             @prop_builder = Galaxy::Properties::Builder.new repository_base, @http_user, @http_password, @logger
             @repository = Galaxy::Repository.new repository_base, @logger
-            @deployer = Galaxy::Deployer.new deploy_dir, @logger, @machine, @host
+            @deployer = Galaxy::Deployer.new deploy_dir, @logger, @machine, @identifier, @group
             @fetcher = Galaxy::Fetcher.new binaries_base, @http_user, @http_password, @logger
             @starter = Galaxy::Starter.new @logger
             @db = Galaxy::DB.new data_dir
@@ -105,8 +105,8 @@ module Galaxy
 
         def status
             OpenStruct.new(
-                :host => @host,
-                :ip => @ip,
+                :id => @identifier,
+                :group => @group,
                 :url => @drb_url,
                 :os => @os,
                 :machine => @machine,
@@ -210,20 +210,14 @@ module Galaxy
         #     url => url to listen on
         #     event_listener => url of the event listener
         def Agent.start args
-            host_url = args[:host] || "localhost"
-            host_url = "druby://#{host_url}" unless host_url.match("^http://") || host_url.match("^druby://") # defaults to drb
-            host_url = "#{host_url}:4441" unless host_url.match ":[0-9]+$"
+            agent_url = args[:agent_url] || "druby://localhost:4441"
+            agent_url = "druby://#{agent_url}" unless agent_url.match("^http://") || agent_url.match("^druby://") # defaults to drb
+            agent_url = "#{agent_url}:4441" unless agent_url.match ":[0-9]+$"
 
             # default console to http/4442 unless specified
-            console_url = args[:console] || "localhost"
+            console_url = args[:console] || "http://localhost:4442"
             console_url = "http://" + console_url unless console_url.match("^http://") || console_url.match("^druby://")
             console_url += ":4442" unless console_url.match ":[0-9]+$"
-
-            # need host as simple name without protocol or port
-            host = args[:host] || "localhost"
-            host = host.sub(/^http:\/\//, "")
-            host = host.sub(/^druby:\/\//, "")
-            host = host.sub(/:[0-9]+$/, "")
 
             if args[:machine]
                 machine = args[:machine]
@@ -238,8 +232,9 @@ module Galaxy
                 end
             end
 
-            agent = Agent.new host,
-                              host_url,
+            agent = Agent.new args[:identifier],
+                              args[:group],
+                              agent_url,
                               machine,
                               console_url,
                               args[:repository] || "/tmp/galaxy-agent-properties",

@@ -6,9 +6,9 @@ module Galaxy
 
             def execute agents
                 report.start
-                agents.sort_by { |agent| agent.host }.each do |agent|
-                    reaped = @options[:console].reap(agent.host)
-                    report.record_result("#{agent.host} - reap #{reaped.nil? ? 'failed' : 'succeeded'}")
+                agents.sort_by { |agent| agent.id }.each do |agent|
+                    reaped = @options[:console].reap(agent.id, agent_group)
+                    report.record_result("#{agent.id}/#{agent.group} - reap #{reaped.nil? ? 'failed' : 'succeeded'}")
                 end
                 [report.finish, nil]
             end

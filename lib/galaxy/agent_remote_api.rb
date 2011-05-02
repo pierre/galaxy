@@ -124,7 +124,7 @@ module Galaxy
 
                 @logger.info "Updating configuration to #{requested_config.config_path}"
 
-                controller = Galaxy::Controller.new config.core_base, config.config_path, @repository_base, @binaries_base, @logger, @machine, @host
+                controller = Galaxy::Controller.new config.core_base, config.config_path, @repository_base, @binaries_base, @logger, @machine, @identifier, @group
                 begin
                     controller.perform! 'update-config', requested_config.config_path
                 rescue Exception => e
@@ -303,7 +303,7 @@ module Galaxy
 
             begin
                 @logger.info "Performing command #{command} with arguments #{args}"
-                controller = Galaxy::Controller.new config.core_base, config.config_path, @repository_base, @binaries_base, @logger, @machine, @host
+                controller = Galaxy::Controller.new config.core_base, config.config_path, @repository_base, @binaries_base, @logger, @machine, @identifier, @group
                 output = controller.perform! command, args
 
                 @event_dispatcher.dispatch_perform_success_event status.marshal_dump.merge!({:perform_command => command, :perform_args => args})

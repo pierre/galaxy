@@ -37,12 +37,6 @@ module Galaxy
             return {}
         end
 
-        def set_host host_from_file
-            @host ||= @config.host || host_from_file || begin
-                Socket.gethostname rescue DEFAULT_HOST
-            end
-        end
-
         def set_machine machine_from_file
             @machine ||= @config.machine || machine_from_file
         end
@@ -55,9 +49,12 @@ module Galaxy
             @user ||= @config.user || user_from_file || nil
         end
 
+        def set_verbose verbose_from_file
+            @verbose ||= @config.verbose || verbose_from_file
+        end
+
         def set_log log_from_file
             @log ||= @config.log || log_from_file || DEFAULT_LOG
-
             begin
                 # Check if we can log to it
                 test_logger = Galaxy::Log::Glogger.new(@log)
@@ -98,7 +95,7 @@ module Galaxy
             Syslog.open($0, Syslog::LOG_PID | Syslog::LOG_CONS) { |s| s.warning e }
         end
 
-        module_function :read_config_file, :set_machine, :set_host, :set_pid_file,
+        module_function :read_config_file, :set_machine, :set_pid_file, :set_verbose,
                         :set_log, :set_log_level, :set_user, :guess
     end
 
@@ -110,14 +107,32 @@ module Galaxy
             @config_from_file = read_config_file(config.config_file)
         end
 
+        # This is a gross hack, that should die rather sooner than later -- hps
         def correct key
             case key
+                # Agent
+                when :agent_url
+                    "agent-url"
+                when :machine_file
+                    "machine-file"
                 when :deploy_dir
                     "deploy-to"
                 when :data_dir
                     "data-dir"
                 when :announce_interval
                     "announce-interval"
+                when :http_user
+                    "http-user"
+                when :http_password
+                    "http-password"
+
+                # Shared opts
+                when :log_level
+                    "log-level"
+                when :config_file
+                    "config"
+                when :event_listener
+                    "event-listener"
                 else
                     key
             end
@@ -126,8 +141,10 @@ module Galaxy
         def configure
             puts "startup configuration" if @config.verbose
             {
-                :host => guess(:host),
+                :agent_url => guess(:agent_url),
                 :machine => guess(:machine),
+                :identifier => guess(:identifier),
+                :group => guess(:group),
                 :console => guess(:console),
                 :repository => guess(:repository),
                 :binaries => guess(:binaries),
@@ -143,6 +160,22 @@ module Galaxy
                 :http_user => guess(:http_user),
                 :http_password => guess(:http_password),
             }
+        end
+
+        def agent_url
+            @agent_url ||= @config.agent_url || @config_from_file['galaxy.agent.agent_url']
+        end
+
+        def identifier
+          @identifier ||= @config.identifier || @config_from_file['galaxy.agent.identifier'] || 'unset'
+        end
+
+        def group
+            @group ||= @config.group || @config_from_file['galaxy.agent.group'] || 'unknown'
+        end
+
+        def verbose
+            set_verbose @config_from_file['galaxy.agent.verbose']
         end
 
         def log
@@ -166,8 +199,14 @@ module Galaxy
             set_machine @config_from_file['galaxy.agent.machine']
         end
 
-        def host
-            set_host @config_from_file['galaxy.agent.host']
+        # Identifier for this agent, will be reported in the gonsole output
+        def identifier
+            @idenfifier ||= @config.identifier ||  @config_from_file['galaxy.agent.identifier']
+        end
+
+        # Group for this agent, will be reported in the gonsole output
+        def group
+            @group ||= @config.group ||  @config_from_file['galaxy.agent.group']
         end
 
         def console
@@ -222,12 +261,23 @@ module Galaxy
 
         def correct key
             case key
-                when :data_dir
-                    return :data
-                when :deploy_dir
-                    "deploy-to"
+                # Console
+                when :announcement_url
+                    "announcement-url"
                 when :ping_interval
                     "ping-interval"
+                when :console_proxied_url
+                    "console-proxied-url"
+                when :console_log
+                    "console-log"
+
+                # Shared opts
+                when :log_level
+                    "log-level"
+                when :config_file
+                    "config"
+                when :event_listener
+                    "event-listener"
                 else
                     key
             end
@@ -254,6 +304,10 @@ module Galaxy
             return @config.console_proxied_url
         end
 
+        def verbose
+            set_verbose @config_from_file['galaxy.agent.verbose']
+        end
+
         def log
             set_log @config_from_file['galaxy.console.log']
         end
@@ -276,7 +330,9 @@ module Galaxy
         end
 
         def host
-            set_host @config_from_file['galaxy.console.host']
+            @host ||= @config.host || @config_from_file['galaxy.console.host'] || begin
+                Socket.gethostname rescue DEFAULT_HOST
+            end
         end
 
         def ping_interval
