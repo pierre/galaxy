@@ -29,7 +29,7 @@ module Galaxy
         include Galaxy::AgentRemoteApi
 
         def initialize agent_id, agent_group, url, machine, announcements_url, repository_base, deploy_dir,
-            data_dir, binaries_base, http_user, http_password, log, log_level, announce_interval
+            data_dir, binaries_base, http_user, http_password, slot_environment, log, log_level, announce_interval
             @drb_url = url
             @agent_id = agent_id
             @agent_group = agent_group
@@ -39,6 +39,8 @@ module Galaxy
 
             @logger = Galaxy::Log::Glogger.new log
             @logger.log.level = log_level
+
+            @slot_environment = load_slot_environment slot_environment
 
             @lock = OpenStruct.new(:owner => nil, :count => 0, :mutex => Mutex.new)
 
@@ -55,10 +57,10 @@ module Galaxy
             @announce_interval = announce_interval
             @prop_builder = Galaxy::Properties::Builder.new repository_base, @http_user, @http_password, @logger
             @repository = Galaxy::Repository.new repository_base, @logger
-            @deployer = Galaxy::Deployer.new deploy_dir, @logger, @machine, @agent_id, @agent_group
+            @db = Galaxy::DB.new data_dir
+            @deployer = Galaxy::Deployer.new deploy_dir, @logger, @db, @machine, @agent_id, @agent_group, @slot_environment
             @fetcher = Galaxy::Fetcher.new binaries_base, @http_user, @http_password, @logger
             @starter = Galaxy::Starter.new @logger
-            @db = Galaxy::DB.new data_dir
             @repository_base = repository_base
             @binaries_base = binaries_base
 
@@ -81,6 +83,23 @@ module Galaxy
                     announce
                 end
             end
+        end
+
+        #
+        # Loads the slot environment file for this
+        # deployment. This is stored alongside the 
+        # actual slot data for later use.
+        #
+        def load_slot_environment slot_environment
+          unless slot_environment.nil? 
+            begin
+              File.open slot_environment, "r" do |f|
+                return YAML.load(f.read)
+              end
+            rescue Errno::ENOENT
+            end
+          end
+          return {}
         end
 
         def lock
@@ -250,6 +269,7 @@ module Galaxy
                               binaries,
                               args[:http_user],
                               args[:http_password],
+                              args[:slot_environment],
                               log,
                               log_level,
                               announce_interval

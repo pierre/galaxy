@@ -1,8 +1,10 @@
 require 'logger'
+require 'yaml'
 
 module Galaxy
     class Controller
-        def initialize core_base, config_path, repository_base, binaries_base, log, machine, agent_id, agent_group
+        def initialize db, core_base, config_path, repository_base, binaries_base, log, machine, agent_id, agent_group, slot_environment = nil
+            @db = db
             @core_base = core_base
             @config_path = config_path
             @repository_base = repository_base
@@ -10,6 +12,7 @@ module Galaxy
             @machine = machine
             @agent_id = agent_id
             @agent_group = agent_group
+            @slot_environment = slot_environment
 
             script = File.join(@core_base, "bin", "control")
             if File.exists? script
@@ -23,8 +26,19 @@ module Galaxy
         def perform! command, args = ''
             @log.info "Invoking control script: #{@script} #{command} #{args}"
 
+            slot_info = OpenStruct.new(:base => @core_base,
+                                        :binaries => @binaries_base,
+                                        :config_path => @config_path,
+                                        :repository => @repository_base,
+                                        :machine => @machine,
+                                        :agent_id => @agent_id,
+                                        :agent_group => @agent_group,
+                                        :env => @slot_environment)
+
+            @db['slot_info'] = YAML.dump slot_info
+
             begin
-                output = `#{@script} --base #{@core_base} --binaries #{@binaries_base} --config-path #{@config_path} --repository #{@repository_base} --machine #{@machine} --id #{@agent_id} --group #{@agent_group} #{command} #{args} 2>&1`
+                output = `#{@script} --slot-info #{@db.file_for('slot_info')} #{command} #{args} 2>&1`
             rescue Exception => e
                 raise ControllerFailureException.new(command, e)
             end

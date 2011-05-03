@@ -27,6 +27,9 @@ class TestAgent < Test::Unit::TestCase
 
     system "#{Galaxy::HostUtils.tar} -C #{File.join(File.dirname(__FILE__), "core_package")} -czf #{@binaries_base}/test-1.0-12345.tar.gz ."
 
+    # Hack the environment to allow the spawned scripts to find galaxy/scripts
+    ENV["RUBYLIB"] =  File.join(File.dirname(__FILE__), "..", "lib")
+
     webrick_logger =  Logger.new(STDOUT)
     webrick_logger.level = Logger::WARN
     @server = WEBrick::HTTPServer.new(:Port => 8000, :Logger => webrick_logger)

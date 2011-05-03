@@ -128,6 +128,8 @@ module Galaxy
                     "http-user"
                 when :http_password
                     "http-password"
+                when :slot_environment
+                    "slot-environment"
 
                 # Shared opts
                 when :log_level
@@ -159,6 +161,7 @@ module Galaxy
                 :announce_interval => guess(:announce_interval),
                 :http_user => guess(:http_user),
                 :http_password => guess(:http_password),
+                :slot_environment => guess(:slot_environment),
             }
         end
 
@@ -174,6 +177,10 @@ module Galaxy
         # Group for this agent, will be reported in the gonsole output
         def agent_group
             @agent_group ||= @config.agent_group ||  @config_from_file['galaxy.agent.agent_group'] || 'unknown'
+        end
+
+        def slot_environment
+            @slot_environment ||= @config.slot_environment || @config_from_file['galaxy.agent.slot_environment']
         end
 
         def verbose

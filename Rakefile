@@ -68,9 +68,9 @@ end
 spec = Gem::Specification.new do |s|
   s.name = PACKAGE_NAME
   s.version = GEM_VERSION
-  s.author = "Ning, Inc."
-  s.email = "pierre@ning.com"
-  s.homepage = "http://github.com/ning/galaxy"
+  s.author = "Trumpet Technologies"
+  s.email = "henning@trumpet.io"
+  s.homepage = "http://github.com/henning/galaxy"
   s.platform = Gem::Platform::RUBY
   s.summary = "Galaxy is a lightweight software deployment and management tool."
   s.files =  FileList["lib/galaxy/**/*.rb", "bin/*"]

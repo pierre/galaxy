@@ -4,6 +4,7 @@ $:.unshift File.join(File.dirname(__FILE__))
 require 'test/unit'
 require 'galaxy/deployer'
 require 'galaxy/host'
+require 'galaxy/db'
 require 'helper'
 require 'fileutils'
 require 'logger'
@@ -20,7 +21,8 @@ class TestDeployer < Test::Unit::TestCase
       #{Galaxy::HostUtils.tar} -C #{File.join(File.dirname(__FILE__), "bad_core_package")} -czf #{@bad_core_package} . 
     }
     @path = Helper.mk_tmpdir
-    @deployer = Galaxy::Deployer.new @path, Logger.new("/dev/null"), "machine", "test_slot", "test_group"
+    @db = Galaxy::DB.new @path
+    @deployer = Galaxy::Deployer.new @path, Logger.new("/dev/null"), @db, "machine", "test_slot", "test_group"
   end
   
   def test_core_base_is_right    

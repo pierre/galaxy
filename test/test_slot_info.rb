@@ -10,7 +10,7 @@ require 'helper'
 require 'fileutils'
 require 'logger'
 
-class TestController < Test::Unit::TestCase
+class TestSlotInfo < Test::Unit::TestCase
   
   def setup
     @core_package = Tempfile.new("package.tgz").path
@@ -19,33 +19,22 @@ class TestController < Test::Unit::TestCase
     }
     # Hack the environment to allow the spawned scripts to find galaxy/scripts
     ENV["RUBYLIB"] =  File.join(File.dirname(__FILE__), "..", "lib")
+
     @path = Helper.mk_tmpdir
     @db = Galaxy::DB.new @path
     @deployer = Galaxy::Deployer.new @path, Logger.new("/dev/null"), @db, "machine", "slot", "group"
     @core_base = @deployer.deploy "1", @core_package, "/config", "/repository", "/binaries"
-    @controller = Galaxy::Controller.new @db, @core_base, '/config/path', 'http://repository/base', 'http://binaries/base', Logger.new("/dev/null"), "machine", "slot", "group"
+    @slot_environment = OpenStruct.new(
+                                       :test1 => "value1",
+                                       :test2 => "value2",
+                                       :test3 => 4815)
+
+    @controller = Galaxy::Controller.new @db, @core_base, '/config/path', 'http://repository/base', 'http://binaries/base', Logger.new("/dev/null"), "machine", "slot", "group", @slot_environment
   end
   
-  def test_perform_success
-    output = @controller.perform!('test-success')
-    assert_equal "gorple\n", output
-  end
-  
-  def test_perform_failure
-    assert_raise Galaxy::Controller::CommandFailedException do
-      @controller.perform!('test-failure')
-    end
-  end
-  
-  def test_perform_unrecognized
-    assert_raise Galaxy::Controller::UnrecognizedCommandException do
-      @controller.perform!('unrecognized')
-    end
-  end
-  
-  def test_controller_arguments
+  def test_slot_info
     assert_nothing_raised do
-      @controller.perform!('test-arguments')
+      @controller.perform!('test-slot-info')
     end
   end
 

@@ -1,16 +1,10 @@
 #!/usr/bin/env ruby
 
-tried = false
-begin
-    require 'galaxy/agent'
-    require 'galaxy/daemon'
-    require 'galaxy/config'
-    require 'galaxy/version'
-rescue LoadError
-    tried = true
-    $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
-    tried ? raise : retry
-end
+require 'galaxy/agent'
+require 'galaxy/daemon'
+require 'galaxy/config'
+require 'galaxy/version'
+
 require 'optparse'
 require 'ostruct'
 
@@ -64,6 +58,9 @@ opts = OptionParser.new do |opts|
     end
     opts.on("-a", "--announce-interval INTERVAL", "How frequently (in seconds) the agent should announce") do |interval|
         command_line_options.announce_interval = interval
+    end
+    opts.on("-e", "--slot-environment FILE", "YAML file containing the slot environment for the deployment") do |slot_environment|
+        command_line_options.slot_environment = slot_environment
     end
 
     opts.separator "  General Options"

@@ -1,3 +1,16 @@
+=BIG FAT WARNING!
+
+This is the Trumpet specific fork of
+http://github.org/pierre/galaxy. By now, it significantly differs from
+the original galaxy code base that agents and console are no longer
+compatible with the original version. This might change in the future
+(i.e. they become compatible again). 
+
+If you are using this fork, you are pretty much on your own. Good
+luck!
+
+-h
+
 = Galaxy
 
 Galaxy is a lightweight software deployment and management tool. We use it at Ning to manage the Java cores and Apache httpd instances that make up the Ning platform (http://www.ning.com).

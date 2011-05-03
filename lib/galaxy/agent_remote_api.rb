@@ -112,7 +112,7 @@ module Galaxy
 
                 @logger.info "Updating configuration to #{requested_config.config_path}"
 
-                controller = Galaxy::Controller.new config.core_base, config.config_path, @repository_base, @binaries_base, @logger, @machine, @agent_id, @agent_group
+                controller = Galaxy::Controller.new @db, config.core_base, config.config_path, @repository_base, @binaries_base, @logger, @machine, @agent_id, @agent_group, @slot_environment
                 begin
                     controller.perform! 'update-config', requested_config.config_path
                 rescue Exception => e
@@ -228,7 +228,7 @@ module Galaxy
             end
         end
 
-        # Retart the currently deployed core
+        # Restart the currently deployed core
         def restart!
             lock
 
@@ -277,7 +277,7 @@ module Galaxy
 
             begin
                 @logger.info "Performing command #{command} with arguments #{args}"
-                controller = Galaxy::Controller.new config.core_base, config.config_path, @repository_base, @binaries_base, @logger, @machine, @agent_id, @agent_group
+                controller = Galaxy::Controller.new @db, config.core_base, config.config_path, @repository_base, @binaries_base, @logger, @machine, @agent_id, @agent_group, @slot_environment
                 output = controller.perform! command, args
 
                 announce

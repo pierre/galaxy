@@ -2,19 +2,12 @@
 require 'optparse'
 require 'ostruct'
 
-tried = false
-begin
-    require 'galaxy/console'
-    require 'galaxy/proxy_console'
-    require 'galaxy/config'
-    require 'galaxy/daemon'
-    require 'galaxy/host'
-    require 'galaxy/version'
-rescue LoadError
-    tried = true
-    $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
-    tried ? raise : retry
-end
+require 'galaxy/console'
+require 'galaxy/proxy_console'
+require 'galaxy/config'
+require 'galaxy/daemon'
+require 'galaxy/host'
+require 'galaxy/version'
 
 action = "help"
 command_line_options = OpenStruct.new( :verbose => false, :test => false, :foreground => false )

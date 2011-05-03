@@ -1,17 +1,18 @@
 #!/usr/bin/env ruby
 
-require 'optparse'
+require 'galaxy/scripts'
 
-rest = OptionParser.new do |opts|
-  opts.on("--base BASE") { |arg| @core_base = arg }
-  opts.on("--config-path PATH") { |arg| @config_path = arg }
-  opts.on("--repository URL") { |arg| @repository_base = arg }
-  opts.on("--machine machine") { |machine| @machine = machine }
-  opts.on("--id id") { |id| @id = id }
-  opts.on("--group group") { |group| @group = group }
-end.parse! ARGV
+scripts = Galaxy::ScriptSupport.new ARGV
 
-command = rest.shift
+@core_base =       scripts.base
+@config_path =     scripts.config_path
+@repository_base = scripts.repository
+@binaries_base =   scripts.binaries
+@machine =         scripts.machine
+@agent_id =        scripts.agent_id
+@agent_group =     scripts.agent_group
+
+command = scripts.rest.shift
 
 case command
 when 'test-success'

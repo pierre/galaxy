@@ -1,21 +1,26 @@
 require 'fileutils'
 require 'tempfile'
 require 'logger'
+require 'yaml'
 require 'galaxy/host'
 
 module Galaxy
     class Deployer
         attr_reader :log
 
-        def initialize deploy_dir, log, machine, agent_id, agent_group
-            @base, @log, @machine, @agent_id, @agent_group = deploy_dir, log, machine, agent_id, agent_group
+        def initialize deploy_dir, log, db, machine, agent_id, agent_group, slot_environment = nil
+            @base, @log, @db, @machine, @agent_id, @agent_group, @slot_environment = deploy_dir, log, db, machine, agent_id, agent_group, slot_environment
+        end
+
+        def core_base_for number
+            core_base = File.join(@base, number.to_s);
         end
 
         # number is the deployment number for this agent
         # archive is the path to the binary archive to deploy
         # props are the properties (configuration) for the core
         def deploy number, archive, config_path, repository_base, binaries_base
-            core_base = File.join(@base, number.to_s);
+            core_base = core_base_for(number)
             FileUtils.mkdir_p core_base
 
             log.info "deploying #{archive} to #{core_base} with config path #{config_path}"
@@ -32,7 +37,18 @@ module Galaxy
                 xndeploy = "/bin/sh #{xndeploy}"
             end
 
-            command = "#{xndeploy} --base #{core_base} --binaries #{binaries_base} --config-path #{config_path} --repository #{repository_base} --machine #{@machine} --id #{@agent_id} --group #{@agent_group}"
+            slot_info = OpenStruct.new(:base => core_base,
+                                        :binaries => binaries_base,
+                                        :config_path => config_path,
+                                        :repository => repository_base,
+                                        :machine => @machine,
+                                        :agent_id => @agent_id,
+                                        :agent_group => @agent_group,
+                                        :env => @slot_environment)
+
+            @db['slot_info'] = YAML.dump slot_info
+
+            command = "#{xndeploy} --slot-info #{@db.file_for('slot_info')}"
             begin
                 Galaxy::HostUtils.system command
             rescue Galaxy::HostUtils::CommandFailedError => e
