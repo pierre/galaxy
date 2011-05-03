@@ -214,12 +214,10 @@ module Galaxy
 
         def deploy_dir
             @deploy_dir ||= @config.deploy_dir || @config_from_file['galaxy.agent.deploy-dir'] || "#{HostUtils.avail_path}/galaxy-agent/deploy"
-            @deploy_dir
         end
 
         def data_dir
             @data_dir ||= @config.data_dir || @config_from_file['galaxy.agent.data-dir'] || "#{HostUtils.avail_path}/galaxy-agent/data"
-            @data_dir
         end
 
         def announce_interval

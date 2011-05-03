@@ -46,6 +46,12 @@ module Galaxy
             @gonsole_url = announcements_url
             @announcer = Galaxy::Transport.locate announcements_url, @logger
 
+            # Create missing folders if they don't already exist. This needs
+            # to be done here, so that in case that the agent changes the user to run as
+            # it is done as the new user, not as the old (root) user.
+            FileUtils.mkdir_p(deploy_dir) unless File.exists? deploy_dir
+            FileUtils.mkdir_p(data_dir) unless File.exists? data_dir
+
             @announce_interval = announce_interval
             @prop_builder = Galaxy::Properties::Builder.new repository_base, @http_user, @http_password, @logger
             @repository = Galaxy::Repository.new repository_base, @logger
@@ -55,12 +61,6 @@ module Galaxy
             @db = Galaxy::DB.new data_dir
             @repository_base = repository_base
             @binaries_base = binaries_base
-
-            # Create missing folders if they don't already exist. This needs
-            # to be done here, so that in case that the agent changes the user to run as
-            # it is done as the new user, not as the old (root) user.
-            FileUtils.mkdir_p(deploy_dir) unless File.exists? deploy_dir
-            FileUtils.mkdir_p(data_dir) unless File.exists? data_dir
 
             if RUBY_PLATFORM =~ /\w+-(\D+)/
                 @os = $1
