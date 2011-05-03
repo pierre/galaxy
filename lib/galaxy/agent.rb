@@ -24,16 +24,16 @@ require 'galaxy/versioning'
 
 module Galaxy
     class Agent
-        attr_reader :identifier, :group, :machine, :config, :locked, :logger, :gonsole_url
+        attr_reader :agent_id, :agent_group, :machine, :config, :locked, :logger, :gonsole_url
         attr_accessor :starter, :fetcher, :deployer, :db
 
         include Galaxy::AgentRemoteApi
 
-        def initialize identifier, group, url, machine, announcements_url, repository_base, deploy_dir,
+        def initialize agent_id, agent_group, url, machine, announcements_url, repository_base, deploy_dir,
             data_dir, binaries_base, http_user, http_password, log, log_level, announce_interval, event_listener
             @drb_url = url
-            @identifier = identifier
-            @group = group
+            @agent_id = agent_id
+            @agent_group = agent_group
             @machine = machine
             @http_user = http_user
             @http_password = http_password
@@ -54,7 +54,7 @@ module Galaxy
             @announce_interval = announce_interval
             @prop_builder = Galaxy::Properties::Builder.new repository_base, @http_user, @http_password, @logger
             @repository = Galaxy::Repository.new repository_base, @logger
-            @deployer = Galaxy::Deployer.new deploy_dir, @logger, @machine, @identifier, @group
+            @deployer = Galaxy::Deployer.new deploy_dir, @logger, @machine, @agent_id, @agent_group
             @fetcher = Galaxy::Fetcher.new binaries_base, @http_user, @http_password, @logger
             @starter = Galaxy::Starter.new @logger
             @db = Galaxy::DB.new data_dir
@@ -105,8 +105,8 @@ module Galaxy
 
         def status
             OpenStruct.new(
-                :id => @identifier,
-                :group => @group,
+                :agent_id => @agent_id,
+                :agent_group => @agent_group,
                 :url => @drb_url,
                 :os => @os,
                 :machine => @machine,
@@ -200,8 +200,9 @@ module Galaxy
             @thread.join
         end
 
-        # args: host => IP/Name to uniquely identify this agent
-        #     console => hostname of the console
+        # args: agent_url => URL that this agent is listening to
+        #       agent_group/agent_id  to uniquely identify this agent
+        #     console_url => URL of the console
         #     repository => base of url to repository
         #     binaries => base of url=l to binary repository
         #     deploy_dir => /path/to/deployment
@@ -232,8 +233,8 @@ module Galaxy
                 end
             end
 
-            agent = Agent.new args[:identifier],
-                              args[:group],
+            agent = Agent.new args[:agent_id],
+                              args[:agent_group],
                               agent_url,
                               machine,
                               console_url,

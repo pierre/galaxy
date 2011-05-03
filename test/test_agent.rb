@@ -51,8 +51,10 @@ class TestAgent < Test::Unit::TestCase
                                   :data_dir => @data_dir,
                                   :deploy_dir => @deploy_dir,
                                   :log_level => Logger::WARN,
-                                  :host => "druby://127.0.0.1:4441",
-                                  :console => "http://127.0.0.1:8000"
+                                  :agent_url => "druby://127.0.0.1:4441",
+                                  :console => "http://127.0.0.1:8000",
+                                  :agent_id => "test_agent",
+                                  :agent_group => "test_group"
                                   })
   end
 

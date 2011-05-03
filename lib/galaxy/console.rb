@@ -58,8 +58,8 @@ module Galaxy
         end
 
         # Remote API
-        def reap id, group
-            key = "#{id}/#{group}"
+        def reap agent_id, agent_group
+            key = "#{agent_id}/#{agent_group}"
             @mutex.synchronize do
                 @db.delete key
             end
@@ -152,10 +152,10 @@ module Galaxy
         # Update the agents database
         def announce announcement
             begin
-                id = announcement.id
-                group = announcement.group
-                key = "#{id}/#{group}"
-                @logger.debug "Received announcement from #{id} in the #{group} group."
+                agent_id = announcement.agent_id
+                agent_group = announcement.agent_group
+                key = "#{agent_id}/#{agent_group}"
+                @logger.debug "Received announcement from #{agent_id}/#{agent_group}."
                 @mutex.synchronize do
                     if @db.has_key?(key)
                         unless @db[key].agent_status != "offline"

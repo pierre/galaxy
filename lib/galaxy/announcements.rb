@@ -155,7 +155,7 @@ class HTTPAnnouncementSender
                 put_data = agent.to_yaml
                 start_time = Time.now
                 response = http.send_request('POST', @uri.request_uri, put_data, headers)
-                @log.debug "Announcement #{put_data} sent, response time for #{agent.id}/#{agent.group} = #{Time.now-start_time}" if @log
+                @log.debug "Announcement #{put_data} sent, response time for #{agent.agent_id}/#{agent.agent_group} = #{Time.now-start_time}" if @log
                 #puts "Response = #{response.code} #{response.message}: #{response.body}"
                 response.body
             end

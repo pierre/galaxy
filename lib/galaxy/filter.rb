@@ -20,12 +20,12 @@ module Galaxy
                 filters << lambda { |a| a.config_path =~ %r!^/#{env}/#{version}/#{type}$! }
             end
 
-            if args[:id]
-                filters << lambda { |a| a.id == args[:id] }
+            if args[:agent_id]
+                filters << lambda { |a| a.agent_id == args[:agent_id] }
             end
 
-            if args[:group]
-                filters << lambda { |a| a.group == args[:group] }
+            if args[:agent_group]
+                filters << lambda { |a| a.agent_group == args[:agent_group] }
             end
 
             if args[:machine]

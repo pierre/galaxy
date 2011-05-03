@@ -40,12 +40,12 @@ require 'galaxy/versioning'
     opts.separator ""
     opts.separator "Filters:"
 
-    opts.on("-i", "--id IDENTIFIER", "Select a specific agent by identifier") do |id|
-        @filter[:id] = id
+    opts.on("-i", "--id IDENTIFIER", "Select a specific agent by identifier") do |agent_id|
+        @filter[:agent_id] = agent_id
     end
 
-    opts.on("-g", "--group GROUP", "Select a specific agent by group") do |group|
-        @filter[:group] = group
+    opts.on("-g", "--group GROUP", "Select a specific agent by group") do |agent_group|
+        @filter[:agent_group] = agent_group
     end
 
     opts.on("-m", "--machine MACHINE", "Select agents by physical machine") do |arg|

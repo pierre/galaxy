@@ -113,6 +113,10 @@ module Galaxy
                 # Agent
                 when :agent_url
                     "agent-url"
+                when :agent_id
+                    "identifier"
+                when :agent_group
+                    "group"
                 when :machine_file
                     "machine-file"
                 when :deploy_dir
@@ -143,8 +147,8 @@ module Galaxy
             {
                 :agent_url => guess(:agent_url),
                 :machine => guess(:machine),
-                :identifier => guess(:identifier),
-                :group => guess(:group),
+                :agent_id => guess(:agent_id),
+                :agent_group => guess(:agent_group),
                 :console => guess(:console),
                 :repository => guess(:repository),
                 :binaries => guess(:binaries),
@@ -166,12 +170,14 @@ module Galaxy
             @agent_url ||= @config.agent_url || @config_from_file['galaxy.agent.agent_url']
         end
 
-        def identifier
-          @identifier ||= @config.identifier || @config_from_file['galaxy.agent.identifier'] || 'unset'
+        # Identifier for this agent, will be reported in the gonsole output
+        def agent_id
+          @agent_id ||= @config.agent_id || @config_from_file['galaxy.agent.agent_id'] || 'unset'
         end
 
-        def group
-            @group ||= @config.group || @config_from_file['galaxy.agent.group'] || 'unknown'
+        # Group for this agent, will be reported in the gonsole output
+        def agent_group
+            @agent_group ||= @config.agent_group ||  @config_from_file['galaxy.agent.agent_group'] || 'unknown'
         end
 
         def verbose
@@ -197,16 +203,6 @@ module Galaxy
 
         def machine
             set_machine @config_from_file['galaxy.agent.machine']
-        end
-
-        # Identifier for this agent, will be reported in the gonsole output
-        def identifier
-            @idenfifier ||= @config.identifier ||  @config_from_file['galaxy.agent.identifier']
-        end
-
-        # Group for this agent, will be reported in the gonsole output
-        def group
-            @group ||= @config.group ||  @config_from_file['galaxy.agent.group']
         end
 
         def console

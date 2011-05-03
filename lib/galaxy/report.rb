@@ -53,7 +53,7 @@ module Galaxy
             private
 
             def format_string
-                STDOUT.tty? ? "%-20s %-8s %-10s\n" : "%s\t%s\t%s\n"
+                STDOUT.tty? ? "%-10s %-10s %-8s %-10s\n" : "%s\t%s\t%s\n"
             end
 
             def format_field field
@@ -62,7 +62,8 @@ module Galaxy
 
             def format_result result
                 [
-                    format_field(result.host),
+                    format_field(result.agent_id),
+                    format_field(result.agent_group),
                     format_field(result.agent_status),
                     format_field(result.galaxy_version),
                 ]
@@ -73,7 +74,7 @@ module Galaxy
             private
 
             def format_string
-                STDOUT.tty? ? "%-20s %-45s %-10s %-15s %-20s %-20s %-15s %-8s\n" : "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n"
+                STDOUT.tty? ? "%-10s %-10s %-45s %-10s %-15s %-20s %-20s %-15s %-8s\n" : "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n"
             end
 
             def format_field field
@@ -82,7 +83,8 @@ module Galaxy
 
             def format_result result
                 [
-                    format_field(result.host),
+                    format_field(result.agent_id),
+                    format_field(result.agent_group),
                     format_field(result.config_path),
                     format_field(result.status),
                     format_field(result.build),
@@ -98,7 +100,7 @@ module Galaxy
             private
 
             def format_string
-                STDOUT.tty? ? "%-20s %-45s %-10s %-15s %-20s %-14s\n" : "%s\t%s\t%s\t%s\t%s\t%s\n"
+                STDOUT.tty? ? "%-10s %-10s %-45s %-10s %-15s %-20s %-14s\n" : "%s\t%s\t%s\t%s\t%s\t%s\n"
             end
 
             def format_field field
@@ -107,7 +109,8 @@ module Galaxy
 
             def format_result result
                 [
-                    format_field(result.host),
+                    format_field(result.agent_id),
+                    format_field(result.agent_group),
                     format_field(result.config_path),
                     format_field(result.status),
                     format_field(result.build),
@@ -147,19 +150,19 @@ module Galaxy
 
             def record_result result
                 @software_deployment_report.record_result(result[0])
-                host, output = format_result(result)
-                output.split("\n").each { |line| @buffer += sprintf(format_string, host, line) }
+                agent_id, agent_group, output = format_result(result)
+                output.split("\n").each { |line| @buffer += sprintf(format_string, agent_id, agent_group, line) }
             end
 
             private
 
             def format_string
-                "%-20s %s\n"
+                "%-10s %-10s %s\n"
             end
 
             def format_result result
                 status, output = result
-                return "#{status.host}:", output
+                return status.agent_id, status.agent_group, output
             end
         end
     end

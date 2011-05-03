@@ -20,7 +20,7 @@ class TestDeployer < Test::Unit::TestCase
       #{Galaxy::HostUtils.tar} -C #{File.join(File.dirname(__FILE__), "bad_core_package")} -czf #{@bad_core_package} . 
     }
     @path = Helper.mk_tmpdir
-    @deployer = Galaxy::Deployer.new @path, Logger.new("/dev/null"), "machine", "host"
+    @deployer = Galaxy::Deployer.new @path, Logger.new("/dev/null"), "machine", "test_slot", "test_group"
   end
   
   def test_core_base_is_right    

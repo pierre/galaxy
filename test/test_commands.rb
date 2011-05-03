@@ -9,13 +9,13 @@ require 'helper'
 class TestCommands < Test::Unit::TestCase
   def setup
     @agents = [
-      MockAgent.new("agent1", "alpha", "1.0", "sysc"),
-      MockAgent.new("agent2", "alpha", "1.0", "idtc"),
-      MockAgent.new("agent3", "alpha", "1.0", "appc/aclu0"),
-      MockAgent.new("agent4"),
-      MockAgent.new("agent5", "alpha", "2.0", "sysc"),
-      MockAgent.new("agent6", "beta", "1.0", "sysc"),
-      MockAgent.new("agent7")
+      MockAgent.new("agent1", "testgroup", "local:agent1", "alpha", "1.0", "sysc"),
+      MockAgent.new("agent2", "testgroup", "local:agent2", "alpha", "1.0", "idtc"),
+      MockAgent.new("agent3", "testgroup", "local:agent3", "alpha", "1.0", "appc/aclu0"),
+      MockAgent.new("agent4", "testgroup", "local:agent4"),
+      MockAgent.new("agent5", "testgroup", "local:agent5", "alpha", "2.0", "sysc"),
+      MockAgent.new("agent6", "testgroup", "local:agent6", "beta", "1.0", "sysc"),
+      MockAgent.new("agent7", "testgroup", "local:agent7")
     ]
 
     @console = MockConsole.new(@agents)
@@ -49,13 +49,13 @@ class TestCommands < Test::Unit::TestCase
     @agents.select { |a| a.config_path.nil? }.each { |a| assert_equal false, yield(a) }
   end
 
-  def internal_test_by_host cmd
+  def internal_test_by_id cmd
     command = Galaxy::Commands[cmd].new [], {:console => @console}
-    agents = command.select_agents(:host => "agent1")
+    agents = command.select_agents(:agent_id => "agent1")
     command.execute agents
 
-    @agents.select {|a| a.host == "agent1" }.each { |a| assert_equal true, yield(a) }
-    @agents.select {|a| a.host != "agent1" }.each { |a| assert_equal false, yield(a) }
+    @agents.select {|a| a.agent_id == "agent1" }.each { |a| assert_equal true, yield(a) }
+    @agents.select {|a| a.agent_id != "agent1" }.each { |a| assert_equal false, yield(a) }
   end
 
   def internal_test_by_type cmd
@@ -162,10 +162,10 @@ class TestCommands < Test::Unit::TestCase
   end
 
   def test_assign_by_host
-    agent = @agents.select { |a| a.host == "agent7" }.first
+    agent = @agents.select { |a| a.agent_id == "agent7" }.first
 
     command = Galaxy::Commands["assign"].new ["beta", "3.0", "rslv"], { :console => @console }
-    agents = command.select_agents(:host => agent.host)
+    agents = command.select_agents(:host => agent.agent_id)
     command.execute agents
 
     assert_equal "beta", agent.env
@@ -181,13 +181,13 @@ class TestCommands < Test::Unit::TestCase
     # TODO
   end
 
-  def test_update_by_host
+  def test_update_by_id
     agent = @agents.select { |a| !a.config_path.nil? }.first
     env = agent.env
     type = agent.type
 
     command = Galaxy::Commands["update"].new ["4.0"], { :console => @console }
-    agents = command.select_agents(:host => agent.host)
+    agents = command.select_agents(:host => agent.agent_id)
     command.execute agents
 
     assert_equal env, agent.env
@@ -195,7 +195,7 @@ class TestCommands < Test::Unit::TestCase
     assert_equal "4.0", agent.version
   end
 
-  def test_update_config_by_host
+  def test_update_config_by_version
     agent = @agents.select { |a| !a.config_path.nil? }.first
     env = agent.env
     type = agent.type

@@ -7,8 +7,8 @@ module Galaxy
     class Deployer
         attr_reader :log
 
-        def initialize deploy_dir, log, machine, identifier, group
-            @base, @log, @machine, @identifier, @group = deploy_dir, log, machine, identifier, group
+        def initialize deploy_dir, log, machine, agent_id, agent_group
+            @base, @log, @machine, @agent_id, @agent_group = deploy_dir, log, machine, agent_id, agent_group
         end
 
         # number is the deployment number for this agent
@@ -32,7 +32,7 @@ module Galaxy
                 xndeploy = "/bin/sh #{xndeploy}"
             end
 
-            command = "#{xndeploy} --base #{core_base} --binaries #{binaries_base} --config-path #{config_path} --repository #{repository_base} --machine #{@machine} --id #{@identifier} --group #{@group}"
+            command = "#{xndeploy} --base #{core_base} --binaries #{binaries_base} --config-path #{config_path} --repository #{repository_base} --machine #{@machine} --id #{@agent_id} --group #{@agent_group}"
             begin
                 Galaxy::HostUtils.system command
             rescue Galaxy::HostUtils::CommandFailedError => e

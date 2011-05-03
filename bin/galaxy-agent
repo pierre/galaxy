@@ -27,11 +27,11 @@ opts = OptionParser.new do |opts|
     opts.on("-C", "--config FILE", "Configuration file (overrides GALAXY_CONFIG)") do |arg|
         command_line_options.config_file = arg
     end
-    opts.on("-i", "--identifier IDENTIFIER", "Slot identifier this agent manages (default *unset*)") do |identifier|
-        command_line_options.identifier = identifier
+    opts.on("-i", "--identifier IDENTIFIER", "Slot identifier this agent manages (default *unset*)") do |agent_id|
+        command_line_options.agent_id = agent_id
     end
-    opts.on("-g", "--group GROUP", "Slot grouping that this agent belongs to (default *unknown*)") do |group|
-        command_line_options.group = group
+    opts.on("-g", "--group GROUP", "Slot grouping that this agent belongs to (default *unknown*)") do |agent_group|
+        command_line_options.agent_group = agent_group
     end
     opts.on("-U", "--agent-url ['http://'|'druby://']HOST[:PORT]", "Local Agent URL that the agent announces. Default: druby://localhost:4441") do |agent_url|
         command_line_options.agent_url = agent_url
