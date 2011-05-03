@@ -1,4 +1,3 @@
-require 'fileutils'
 require 'logger'
 require 'socket'
 require 'galaxy/host'
@@ -190,8 +189,7 @@ module Galaxy
         end
 
         def pid_file
-            set_pid_file @config_from_file['galaxy.agent.pid-file'] ||
-                DEFAULT_AGENT_PID_FILE
+            set_pid_file @config_from_file['galaxy.agent.pid-file'] || DEFAULT_AGENT_PID_FILE
         end
 
         def user
@@ -216,13 +214,11 @@ module Galaxy
 
         def deploy_dir
             @deploy_dir ||= @config.deploy_dir || @config_from_file['galaxy.agent.deploy-dir'] || "#{HostUtils.avail_path}/galaxy-agent/deploy"
-            FileUtils.mkdir_p(@deploy_dir) unless File.exists? @deploy_dir
             @deploy_dir
         end
 
         def data_dir
             @data_dir ||= @config.data_dir || @config_from_file['galaxy.agent.data-dir'] || "#{HostUtils.avail_path}/galaxy-agent/data"
-            FileUtils.mkdir_p(@data_dir) unless File.exists? @data_dir
             @data_dir
         end
 
