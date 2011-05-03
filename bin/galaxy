@@ -52,10 +52,6 @@ require 'galaxy/versioning'
         @filter[:machine] = arg
     end
 
-    opts.on("-M", "--cohabitants HOST", "Select agents that share a physical machine with the specified host") do |arg|
-        @options[:cohabitant_host] = arg
-    end
-
     opts.on("-s", "--set SET", "Select 'e{mpty}', 't{aken}' or 'a{ll}' hosts", [:empty, :all, :taken, :e, :a, :t]) do |arg|
         case arg
             when :all, :a then
@@ -134,28 +130,6 @@ def get_command
         end
         @command = @command_class.new(@args, @options)
     end
-
-    # If a host is removed from dns, it should then be possible to reap it from the gonsole, without
-    # having to restart the gonsole. Don't bail out if the DNS does not exist anymore.
-    # See GAL-290.
-    begin
-        @filter[:host] = canonical_hostname(@filter[:host]) if @filter[:host]
-    rescue Exception => e
-        raise CommandLineError.new("DNS error: #{e}") unless command_name == "reap"
-        @filter[:host] = @filter[:host]
-    end
-    begin
-        @filter[:machine] = canonical_hostname(@filter[:machine]) if @filter[:machine]
-    rescue Exception => e
-        raise CommandLineError.new("DNS error: #{e}") unless command_name == "reap"
-        @filter[:machine] = @filter[:machine]
-    end
-    begin
-        @options[:cohabitant_host] = canonical_hostname(@options[:cohabitant_host]) if @options[:cohabitant_host]
-    rescue Exception => e
-        raise CommandLineError.new("DNS error: #{e}") unless command_name == "reap"
-        @options[:cohabitant_host] = @options[:cohabitant_host]
-    end
 end
 
 def validate_options
@@ -166,17 +140,6 @@ def validate_options
     @options[:console_url] = normalize_console_url(console_url)
     @options[:console] = Galaxy::Transport.locate(@options[:console_url])
 
-    if @options[:cohabitant_host]
-        begin
-            agents = @options[:console].agents({:host => @options[:cohabitant_host], :command => @original_args})
-            if agents.length != 1
-                raise "Found #{agents.length} agents matching #{@options[:cohabitant_host]}"
-            end
-            @filter[:machine] = agents[0].machine
-        rescue Exception => e
-            raise "Unable to determine machine for host #{@options[:cohabitant_host]}: #{e}"
-        end
-    end
 end
 
 def usage_message
