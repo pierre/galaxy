@@ -105,7 +105,7 @@ module Galaxy
         end
 
         def Console.start args
-            drb_url = args[:url] || "druby://" + host # DRB transport
+            drb_url = args[:url] || "druby://" + args[:host] # DRB transport
             drb_url += ":4440" unless drb_url.match ":[0-9]+$"
 
             http_url = args[:announcement_url] || "http://localhost" # http announcements
