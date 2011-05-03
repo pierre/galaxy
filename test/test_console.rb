@@ -50,12 +50,12 @@ class TestConsole < Test::Unit::TestCase
   end
 
   def test_updates_last_announced_on_announce
-    assert_nil @console.db["foo"]
+    assert_nil @console.db["foo/group1"]
 
     @console.send("announce", @foo)
-    first = @console.db["foo"].timestamp
+    first = @console.db["foo/group1"].timestamp
     @console.send("announce", @foo)
-    second = @console.db["foo"].timestamp
+    second = @console.db["foo/group1"].timestamp
 
     assert second > first
   end

@@ -17,8 +17,12 @@ class TestConfig < Test::Unit::TestCase
     @c2 = Galaxy::ConsoleConfigurator.new @s
   end
 
-  def test_host_defaults_to_hostname
-    assert_equal `hostname`.strip, @c.host
+  def test_unknown_agent_id
+    assert_equal "unset", @c.agent_id
+  end
+
+  def test_unknown_agent_group
+    assert_equal "unknown", @c.agent_group
   end
 
   def test_logging

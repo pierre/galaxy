@@ -80,15 +80,15 @@ class TestCommands < Test::Unit::TestCase
   end
 
   def test_stop_by_host
-    internal_test_by_host("stop") { |a| a.stopped }
+    internal_test_by_id("stop") { |a| a.stopped }
   end
 
   def test_start_by_host
-    internal_test_by_host("start") { |a| a.started }
+    internal_test_by_id("start") { |a| a.started }
   end
 
   def test_restart_by_host
-    internal_test_by_host("restart") { |a| a.restarted }
+    internal_test_by_id("restart") { |a| a.restarted }
   end
 
   def test_stop_by_type
@@ -165,7 +165,7 @@ class TestCommands < Test::Unit::TestCase
     agent = @agents.select { |a| a.agent_id == "agent7" }.first
 
     command = Galaxy::Commands["assign"].new ["beta", "3.0", "rslv"], { :console => @console }
-    agents = command.select_agents(:host => agent.agent_id)
+    agents = command.select_agents(:agent_id => agent.agent_id)
     command.execute agents
 
     assert_equal "beta", agent.env
@@ -187,7 +187,7 @@ class TestCommands < Test::Unit::TestCase
     type = agent.type
 
     command = Galaxy::Commands["update"].new ["4.0"], { :console => @console }
-    agents = command.select_agents(:host => agent.agent_id)
+    agents = command.select_agents(:agent_id => agent.agent_id)
     command.execute agents
 
     assert_equal env, agent.env

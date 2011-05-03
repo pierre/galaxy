@@ -24,7 +24,7 @@ module Galaxy
             @log.info "Invoking control script: #{@script} #{command} #{args}"
 
             begin
-                output = `#{@script} --base #{core_base} --binaries #{binaries_base} --config-path #{config_path} --repository #{repository_base} --machine #{@machine} --id #{@agent_id} --group #{@agent_group} #{command} #{args} 2>&1`
+                output = `#{@script} --base #{@core_base} --binaries #{@binaries_base} --config-path #{@config_path} --repository #{@repository_base} --machine #{@machine} --id #{@agent_id} --group #{@agent_group} #{command} #{args} 2>&1`
             rescue Exception => e
                 raise ControllerFailureException.new(command, e)
             end
