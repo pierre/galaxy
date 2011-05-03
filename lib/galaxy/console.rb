@@ -11,7 +11,6 @@ rescue LoadError
 end
 require 'resolv'
 
-require 'galaxy/events'
 require 'galaxy/filter'
 require 'galaxy/log'
 require 'galaxy/transport'
@@ -25,23 +24,19 @@ module Galaxy
             Galaxy::Transport.locate url
         end
 
-        def initialize drb_url, http_url, log, log_level, ping_interval, host, env, event_listener
+        def initialize drb_url, http_url, log, log_level, ping_interval, host, env
             @host = host
             @env = env
 
             @drb_url = drb_url
             @http_url = http_url
 
-            # Setup the logger and the event dispatcher (HDFS) if needed
-            @logger = Galaxy::Log::Glogger.new(log, event_listener, @http_url)
+            @logger = Galaxy::Log::Glogger.new(log)
             @logger.log.level = log_level
 
             @ping_interval = ping_interval
             @db = {}
             @mutex = Mutex.new
-
-            # set up event listener
-            @event_dispatcher = Galaxy::GalaxyEventSender.new(event_listener, @http_url, nil, @logger)
 
             Thread.new do
                 loop do
@@ -109,24 +104,25 @@ module Galaxy
             end
         end
 
-        # Remote API
-        def dispatch_event type, msg
-            @event_dispatcher.send("dispatch_#{type}_event", msg)
-        end
-
         def Console.start args
-            host = args[:host] || "localhost"
             drb_url = args[:url] || "druby://" + host # DRB transport
             drb_url += ":4440" unless drb_url.match ":[0-9]+$"
 
             http_url = args[:announcement_url] || "http://localhost" # http announcements
             http_url = "#{http_url}:4442" unless http_url.match ":[0-9]+$"
 
-            console = Console.new drb_url, http_url,
-                                  args[:log] || "STDOUT",
-                                  args[:log_level] || Logger::INFO,
-                                  args[:ping_interval] || 5,
-                                  host, args[:environment], args[:event_listener]
+            log = args[:log] || "STDOUT"
+            log_level = args[:log_level] || Logger::INFO
+            ping_interval = args[:ping_interval] || 5
+            host = args[:host] || "localhost"
+
+            console = Console.new drb_url, 
+                                  http_url,
+                                  log,
+                                  log_level,
+                                  ping_interval,
+                                  host, 
+                                  args[:environment]
 
             # DRb transport (galaxy command line client)
             Galaxy::Transport.publish drb_url, console, console.logger
@@ -161,17 +157,14 @@ module Galaxy
                         unless @db[key].agent_status != "offline"
                             announce_message = "#{key} is now online again"
                             @logger.info announce_message
-                            @event_dispatcher.dispatch_announce_success_event announce_message
                         end
                         if @db[key].status != announcement.status
                             announce_message = "#{key} core state changed: #{@db[key].status} --> #{announcement.status}"
                             @logger.info announce_message
-                            @event_dispatcher.dispatch_announce_success_event announce_message
                         end
                     else
                         announce_message = "Discovered new agent: #{key} [#{announcement.inspect}]"
                         @logger.info "Discovered new agent: #{key} [#{announcement.inspect}]"
-                        @event_dispatcher.dispatch_announce_success_event announce_message
                     end
 
                     @db[key] = announcement
@@ -181,7 +174,6 @@ module Galaxy
             rescue RuntimeError => e
                 error_message = "Error receiving announcement: #{e}"
                 @logger.warn error_message
-                @event_dispatcher.dispatch_announce_error_event error_message
             end
         end
 
@@ -192,7 +184,6 @@ module Galaxy
                     if entry.agent_status != "offline" and entry.timestamp < cutoff
                         error_message = "#{key} failed to announce; marking as offline"
                         @logger.warn error_message
-                        @event_dispatcher.dispatch_announce_error_event error_message
 
                         entry.agent_status = "offline"
                         entry.status = "unknown"

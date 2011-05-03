@@ -11,7 +11,6 @@ require 'galaxy/config'
 require 'galaxy/controller'
 require 'galaxy/db'
 require 'galaxy/deployer'
-require 'galaxy/events'
 require 'galaxy/fetcher'
 require 'galaxy/log'
 require 'galaxy/properties'
@@ -30,7 +29,7 @@ module Galaxy
         include Galaxy::AgentRemoteApi
 
         def initialize agent_id, agent_group, url, machine, announcements_url, repository_base, deploy_dir,
-            data_dir, binaries_base, http_user, http_password, log, log_level, announce_interval, event_listener
+            data_dir, binaries_base, http_user, http_password, log, log_level, announce_interval
             @drb_url = url
             @agent_id = agent_id
             @agent_group = agent_group
@@ -38,8 +37,7 @@ module Galaxy
             @http_user = http_user
             @http_password = http_password
 
-            # Setup the logger and the event dispatcher (HDFS) if needed
-            @logger = Galaxy::Log::Glogger.new log, event_listener, announcements_url
+            @logger = Galaxy::Log::Glogger.new log
             @logger.log.level = log_level
 
             @lock = OpenStruct.new(:owner => nil, :count => 0, :mutex => Mutex.new)
@@ -47,9 +45,6 @@ module Galaxy
             # set up announcements
             @gonsole_url = announcements_url
             @announcer = Galaxy::Transport.locate announcements_url, @logger
-
-            # Setup event listener
-            @event_dispatcher = Galaxy::GalaxyEventSender.new(event_listener, @gonsole_url, nil, @logger)
 
             @announce_interval = announce_interval
             @prop_builder = Galaxy::Properties::Builder.new repository_base, @http_user, @http_password, @logger
@@ -123,13 +118,11 @@ module Galaxy
         def announce
             begin
                 res = @announcer.announce status
-                @event_dispatcher.dispatch_announce_success_event status
                 return res
             rescue Exception => e
                 error_reason = "Unable to communicate with console, #{e.message}"
                 @logger.warn "Unable to communicate with console, #{e.message}"
                 @logger.warn e
-                @event_dispatcher.dispatch_announce_error_event error_reason
             end
         end
 
@@ -209,7 +202,6 @@ module Galaxy
         #     data_dir => /path/to/agent/data/storage
         #     log => /path/to/log || STDOUT || STDERR || SYSLOG
         #     url => url to listen on
-        #     event_listener => url of the event listener
         def Agent.start args
             agent_url = args[:agent_url] || "druby://localhost:4441"
             agent_url = "druby://#{agent_url}" unless agent_url.match("^http://") || agent_url.match("^druby://") # defaults to drb
@@ -233,21 +225,28 @@ module Galaxy
                 end
             end
 
+            repository = args[:repository] || "/tmp/galaxy-agent-properties"
+            deploy_dir = args[:deploy_dir] || "/tmp/galaxy-agent-deploy"
+            data_dir = args[:data_dir] || "/tmp/galaxy-agent-data"
+            binaries = args[:binaries] || "http://localhost:8000"
+            log = args[:log] || "STDOUT"
+            log_level = args[:log_level] || Logger::INFO
+            announce_interval = args[:announce_interval] || 60
+
             agent = Agent.new args[:agent_id],
                               args[:agent_group],
                               agent_url,
                               machine,
                               console_url,
-                              args[:repository] || "/tmp/galaxy-agent-properties",
-                              args[:deploy_dir] || "/tmp/galaxy-agent-deploy",
-                              args[:data_dir] || "/tmp/galaxy-agent-data",
-                              args[:binaries] || "http://localhost:8000",
+                              repository,
+                              deploy_dir,
+                              data_dir,
+                              binaries,
                               args[:http_user],
                               args[:http_password],
-                              args[:log] || "STDOUT",
-                              args[:log_level] || Logger::INFO,
-                              args[:announce_interval] || 60,
-                              args[:event_listener]
+                              log,
+                              log_level,
+                              announce_interval
 
             agent
         end

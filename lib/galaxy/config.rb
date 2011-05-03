@@ -135,8 +135,6 @@ module Galaxy
                     "log-level"
                 when :config_file
                     "config"
-                when :event_listener
-                    "event-listener"
                 else
                     key
             end
@@ -160,7 +158,6 @@ module Galaxy
                 :pid_file => guess(:pid_file),
                 :user => guess(:user),
                 :announce_interval => guess(:announce_interval),
-                :event_listener => guess(:event_listener),
                 :http_user => guess(:http_user),
                 :http_password => guess(:http_password),
             }
@@ -234,10 +231,6 @@ module Galaxy
             @announce_interval = @announce_interval.to_i
         end
 
-        def event_listener
-            @event_listener ||= @config.event_listener || @config_from_file['galaxy.agent.event_listener']
-        end
-
         def http_user
             @http_user ||= @config.http_user || @config_from_file['galaxy.agent.http_user']
         end
@@ -272,8 +265,6 @@ module Galaxy
                     "log-level"
                 when :config_file
                     "config"
-                when :event_listener
-                    "event-listener"
                 else
                     key
             end
@@ -292,7 +283,6 @@ module Galaxy
                 :announcement_url => guess(:announcement_url),
                 :ping_interval => guess(:ping_interval),
                 :console_proxied_url => guess(:console_proxied_url),
-                :event_listener => guess(:event_listener)
             }
         end
 
@@ -334,10 +324,6 @@ module Galaxy
         def ping_interval
             @ping_interval ||= @config.ping_interval || @config_from_file['galaxy.console.ping-interval'] || 60
             @ping_interval = @ping_interval.to_i
-        end
-
-        def event_listener
-            @event_listener ||= @config.event_listener || @config_from_file['galaxy.console.event_listener']
         end
 
         def environment

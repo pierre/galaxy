@@ -74,9 +74,6 @@ opts = OptionParser.new do |opts|
     opts.on_tail("-u", "--user USER", "User to run as") do |arg|
         command_line_options.user = arg
     end
-    opts.on("-z", "--event_listener URL", "Which listener to use") do |event_listener|
-        command_line_options.event_listener = event_listener
-    end
     opts.on("-H", "--http-user USER", "HTTP User for authentication.") do |http_user|
         command_line_options.http_user = http_user
     end
