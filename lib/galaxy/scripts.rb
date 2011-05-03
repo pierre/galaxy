@@ -7,24 +7,38 @@ require 'ostruct'
 #
 module Galaxy
   class ScriptSupport
-    def initialize args
+    attr_accessor :base, :config_path, :repository, :binaries, :machine, :agent_id, :agent_group
+    attr_reader :rest, :slot_info, :env
+
+
+    def initialize args, & block
 
       @rest = OptionParser.new do |opts|
         opts.on("--slot-info SLOT_INFO") { |arg| @slot_info = arg }
+        yield self if block_given?
       end.parse! args
 
       raise "No slot info file given" if @slot_info.nil?
 
       @slot_data = load_slot_info
 
-      raise "No base given" if @slot_data.base.nil?
-      raise "No config path given" if @slot_data.config_path.nil?
-      raise "No repository url given" if @slot_data.repository.nil?
-      raise "No binaries url given" if @slot_data.binaries.nil?
-      raise "No machine given" if @slot_data.machine.nil?
-      raise "No agent id given" if @slot_data.agent_id.nil?
-      raise "No agent group given" if @slot_data.agent_group.nil?
-      raise "No environment given" if @slot_data.env.nil?
+      @base = @slot_data.base
+      @config_path = @slot_data.config_path
+      @repository = @slot_data.repository
+      @binaries = @slot_data.binaries
+      @machine = @slot_data.machine
+      @agent_id = @slot_data.agent_id
+      @agent_group = @slot_data.agent_group
+      @env = @slot_data.env
+
+      raise "No base given"           if base.nil?
+      raise "No config path given"    if config_path.nil?
+      raise "No repository url given" if repository.nil?
+      raise "No binaries url given"   if binaries.nil?
+      raise "No machine given"        if machine.nil?
+      raise "No agent id given"       if agent_id.nil?
+      raise "No agent group given"    if agent_group.nil?
+      raise "No environment given"    if env.nil?
     end
 
     def load_slot_info
@@ -47,43 +61,6 @@ module Galaxy
         end
       end
       return OpenStruct.new(:env => OpenStruct.new)
-    end
-
-    # Remainder of the command line arguments
-    def rest
-      @rest
-    end
-
-    def base
-      @slot_data.base
-    end
-
-    def config_path
-      @slot_data.config_path
-    end
-
-    def repository
-      @slot_data.repository
-    end
-
-    def binaries
-      @slot_data.binaries
-    end
-
-    def machine
-      @slot_data.machine
-    end
-
-    def agent_id
-      @slot_data.agent_id
-    end
-
-    def agent_group
-      @slot_data.agent_group
-    end
-
-    def env
-      @slot_data.env
     end
   end
 end

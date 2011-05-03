@@ -60,7 +60,7 @@ module Galaxy
             @db = Galaxy::DB.new data_dir
             @deployer = Galaxy::Deployer.new deploy_dir, @logger, @db, @machine, @agent_id, @agent_group, @slot_environment
             @fetcher = Galaxy::Fetcher.new binaries_base, @http_user, @http_password, @logger
-            @starter = Galaxy::Starter.new @logger
+            @starter = Galaxy::Starter.new @logger, @db
             @repository_base = repository_base
             @binaries_base = binaries_base
 
