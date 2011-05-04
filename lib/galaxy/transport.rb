@@ -48,6 +48,7 @@ module Galaxy
         end
 
         def publish url, object, log=nil
+            log.debug("Starting DRB for #{url}")
             @servers[url] = DRb.start_service url, object
         end
 

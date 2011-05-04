@@ -73,7 +73,7 @@ module Galaxy
 
             @config = read_config current_deployment_number
 
-            Galaxy::Transport.publish url, self
+            Galaxy::Transport.publish url, self, @logger
             announce
             sync_state!
 
