@@ -107,7 +107,7 @@ module Galaxy
       information["external.port.https"] = env.external_https  || 443
       
       information["private.port.jmx"]    = env.private_port_jmx || 12345
-      information["private.port.tomcat"] = env.private_port_jmx || 8005
+      information["private.port.tomcat"] = env.private_port_tomcat || 8005
       
       information["private.port.0"]      = env.private_port_0   || 28800
       information["private.port.1"]      = env.private_port_1   || 28801
