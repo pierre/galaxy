@@ -15,7 +15,7 @@ module Galaxy
 
       @rest = OptionParser.new do |opts|
         opts.on("--slot-info SLOT_INFO") { |arg| @slot_info = arg }
-        yield self if block_given?
+        yield opts if block_given?
       end.parse! args
 
       raise "No slot info file given" if @slot_info.nil?
@@ -29,16 +29,16 @@ module Galaxy
       @machine = @slot_data.machine
       @agent_id = @slot_data.agent_id
       @agent_group = @slot_data.agent_group
-      @env = @slot_data.env
+      @env = OpenStruct.new(@slot_data.env)
 
-      raise "No base given"           if base.nil?
-      raise "No config path given"    if config_path.nil?
-      raise "No repository url given" if repository.nil?
-      raise "No binaries url given"   if binaries.nil?
-      raise "No machine given"        if machine.nil?
-      raise "No agent id given"       if agent_id.nil?
-      raise "No agent group given"    if agent_group.nil?
-      raise "No environment given"    if env.nil?
+      raise "No base given"           if @slot_data.base.nil?
+      raise "No config path given"    if @slot_data.config_path.nil?
+      raise "No repository url given" if @slot_data.repository.nil?
+      raise "No binaries url given"   if @slot_data.binaries.nil?
+      raise "No machine given"        if @slot_data.machine.nil?
+      raise "No agent id given"       if @slot_data.agent_id.nil?
+      raise "No agent group given"    if @slot_data.agent_group.nil?
+      raise "No environment given"    if @slot_data.env.nil?
     end
 
     def load_slot_info
