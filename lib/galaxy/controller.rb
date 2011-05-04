@@ -24,7 +24,8 @@ module Galaxy
         end
 
         def perform! command, args = ''
-            @log.info "Invoking control script: #{@script} #{command} #{args}"
+            exec_script="#{@script} --slot-info #{@db.file_for('slot_info')} #{command} #{args}"
+            @log.info "Invoking control script: #{exec_script}"
 
             slot_info = OpenStruct.new(:base => @core_base,
                                         :binaries => @binaries_base,
@@ -38,7 +39,7 @@ module Galaxy
             @db['slot_info'] = YAML.dump slot_info
 
             begin
-                output = `#{@script} --slot-info #{@db.file_for('slot_info')} #{command} #{args} 2>&1`
+                output = `#{exec_script} 2>&1`
             rescue Exception => e
                 raise ControllerFailureException.new(command, e)
             end
