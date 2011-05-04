@@ -36,7 +36,7 @@ module Galaxy
                       url = "#{@base}#{history.join("/")}/#{file_name}"
                       @log.debug "Fetching #{url}"
 
-                      auth = nil
+                      auth = {}
                       begin
                         fetch_done = true
                         open(url, auth) do |io|
