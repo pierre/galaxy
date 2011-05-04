@@ -97,7 +97,7 @@ module Galaxy
       information["env.machine"]         = machine
       information["env.slot_info"]       = slot_info
       information["env.config_location"] = config_location
-      
+
       information["internal.ip"]         = env.internal_ip
       information["internal.port.http"]  = env.internal_http   || 80
       information["internal.port.https"] = env.internal_https  || 443
@@ -146,8 +146,12 @@ module Galaxy
 
       jvm_files.each do |lines|
         lines.each do |line|
-          key,value = line.split("=")
-          jvm_lines[key.strip] = value.nil? ? nil : value.strip
+          unless line =~ /^\s*\#/
+            line.split(' ').each do |element|
+              key,value = element.split("=")
+              jvm_lines[key.strip] = value.nil? ? nil : value.strip
+            end
+          end
         end
       end
 
