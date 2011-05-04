@@ -12,7 +12,13 @@ require 'logger'
 class TestConfig < Test::Unit::TestCase
 
   def setup
-    @s = OpenStruct.new
+    @path = Helper.mk_tmpdir
+    @file = File.join(@path, "foo")
+    File.open @file, "w" do |file| 
+      file.print "foo: bar\n"
+    end
+    # Make sure not to pick up the local /etc/galaxy.conf
+    @s = OpenStruct.new(:config_file => @file)
     @c = Galaxy::AgentConfigurator.new @s
     @c2 = Galaxy::ConsoleConfigurator.new @s
   end

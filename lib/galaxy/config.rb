@@ -18,8 +18,6 @@ module Galaxy
             unless config_file.nil? or config_file.empty?
                 msg = "Cannot find configuration file: #{config_file}"
                 unless File.exist?(config_file)
-                    # Log exception to syslog
-                    syslog_log msg
                     raise msg
                 end
             end

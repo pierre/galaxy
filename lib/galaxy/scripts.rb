@@ -31,7 +31,9 @@ module Galaxy
       @machine = @slot_data.machine
       @agent_id = @slot_data.agent_id
       @agent_group = @slot_data.agent_group
-      @env = OpenStruct.new(@slot_data.env)
+      @env = @slot_data.env
+      # Wrap @env in an OpenStruct unless it already is one to allow lookups by key name using "."
+      @env = OpenStruct.new(@slot_data.env) unless @env.is_a? OpenStruct
 
       raise "No base given"           if @slot_data.base.nil?
       raise "No config path given"    if @slot_data.config_path.nil?
@@ -47,14 +49,14 @@ module Galaxy
       unless @slot_info.nil? 
         begin
           File.open @slot_info, "r" do |f|
-            data = YAML.load(f.read)
+            content = f.read
+            data = YAML.load(content)
             if data.is_a? OpenStruct
 
               # Fix up the environment if it was not set by the caller
               if data.env.nil?
                 data.env = OpenStruct.new
               end
-
               return data
             end
             puts "Expected a serialized OpenStruct, found something else!"
