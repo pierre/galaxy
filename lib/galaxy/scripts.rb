@@ -134,7 +134,7 @@ module Galaxy
         end
       }
 
-      information_opts.join(' ')
+      information_opts
     end
 
     def get_jvm_opts
@@ -159,7 +159,7 @@ module Galaxy
         end
       }
 
-      jvm_opts.join(' ')
+      jvm_opts
     end
 
   end
