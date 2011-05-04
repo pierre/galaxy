@@ -2,6 +2,8 @@ require 'optparse'
 require 'yaml'
 require 'ostruct'
 
+require 'galaxy/repository'
+
 #
 # Support module for xndeploy, control etc. to make writing these scripts easier.
 #
@@ -62,6 +64,104 @@ module Galaxy
       end
       return OpenStruct.new(:env => OpenStruct.new)
     end
+
+    # This splits /env/version/type into "" "env" "version" "type". So the values are 1-3, not 0-2.
+    def config
+      config = config_path.split("/")
+      unless config.length == 4
+        raise "Invalid configuration path: #{config_path}"
+      end
+      config
+    end
+    
+    # Hard coded!. Sucks! Needs fixing!
+    def config_location
+      config_location = File.join(base, "config")
+    end
+    
+    def get_slot_variables
+      information = {}
+      
+      information["deploy.env"]          = config[1]
+      information["deploy.version"]      = config[2]
+      information["deploy.type"]         = config[3]
+      information["deploy.config"]       = config_path
+      
+      information["env.base"]            = base
+      information["env.repository"]      = repository
+      information["env.binaries"]        = binaries
+      information["env.agent_id"]        = agent_id
+      information["env.agent_group"]     = agent_group
+      information["env.machine"]         = machine
+      information["env.slot_info"]       = slot_info
+      information["env.config_location"] = config_location
+      
+      information["internal.ip"]         = env.internal_ip
+      information["internal.port.http"]  = env.internal_http   || 80
+      information["internal.port.https"] = env.internal_https  || 443
+      
+      information["external.ip"]         = env.external_ip
+      information["external.port.http"]  = env.external_http   || 80
+      information["external.port.https"] = env.external_https  || 443
+      
+      information["private.port.jmx"]    = env.private_port_jmx || 12345
+      information["private.port.tomcat"] = env.private_port_jmx || 8005
+      
+      information["private.port.0"]      = env.private_port_0   || 28800
+      information["private.port.1"]      = env.private_port_1   || 28801
+      information["private.port.2"]      = env.private_port_2   || 28802
+      information["private.port.3"]      = env.private_port_3   || 28803
+      information["private.port.4"]      = env.private_port_4   || 28804
+      
+      information["global.port.0"]       = env.global_port_0   || 28805
+      information["global.port.1"]       = env.global_port_1   || 28806
+      information["global.port.2"]       = env.global_port_2   || 28807
+      information["global.port.3"]       = env.global_port_3   || 28808
+      information["global.port.4"]       = env.global_port_4   || 28809
+      
+      information
+    end
+
+    def get_java_galaxy_env
+      information = get_slot_variables
+
+      information_opts = []
+      information.each { |key, value| 
+        if value.nil?
+          information_opts << "-Dgalaxy.#{key}"
+        else
+          information_opts << "-Dgalaxy.#{key}=#{value}"
+        end
+      }
+
+      information_opts.join(' ')
+    end
+
+    def get_jvm_opts
+      repository =   Galaxy::Repository.new config_location
+      jvm_files = repository.walk(config_path, 'jvm.properties')
+      jvm_lines = {}
+
+      jvm_files.each do |lines|
+        lines.each do |line|
+          key,value = line.split("=")
+          jvm_lines[key.strip] = value.nil? ? nil : value.strip
+        end
+      end
+
+      jvm_opts = []
+
+      jvm_lines.each { |key, value| 
+        if value.nil?
+          jvm_opts << "#{key}"
+        else
+          jvm_opts << "#{key}=#{value}"
+        end
+      }
+
+      jvm_opts.join(' ')
+    end
+
   end
 end
 
