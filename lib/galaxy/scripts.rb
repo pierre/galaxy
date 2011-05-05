@@ -148,8 +148,8 @@ module Galaxy
         lines.each do |line|
           unless line =~ /^\s*\#/
             line.split(' ').each do |element|
-              key,value = element.split("=")
-              jvm_lines[key.strip] = value.nil? ? nil : value.strip
+              key,*values = element.split("=")
+              jvm_lines[key.strip] = (values.length == 0) ? nil : values.join("=").strip
             end
           end
         end
