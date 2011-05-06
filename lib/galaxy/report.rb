@@ -165,5 +165,37 @@ module Galaxy
                 return status.agent_id, status.agent_group, output
             end
         end
+
+        class CoreSlotInfoReport < Report
+          def record_result agent
+            result = []
+            unless agent.slot_info.nil?
+              # This returns a map of the keys in the ostruct
+              slot_data = agent.slot_info.marshal_dump
+              dump_info(agent, [], slot_data)
+            else
+                @buffer +=sprintf "%10s %10s <no information received>\n", agent.agent_id, agent.agent_group
+            end
+          end
+
+          private 
+
+          def format_string
+            "%-10s %-10s %-20s %s\n"
+          end
+
+          def dump_info agent, prefix, data
+            data.keys.sort {|a,b| a.to_s <=> b.to_s }.each do |key|
+                full_key = prefix.dup
+                full_key << key
+                value = data[key]
+                if value.is_a? Hash
+                  dump_info agent, full_key, value
+                else
+                  @buffer +=sprintf format_string, agent.agent_id, agent.agent_group, full_key.join('.'), value.to_s
+                end
+            end
+        end
     end
+  end
 end

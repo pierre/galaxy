@@ -142,7 +142,8 @@ module Galaxy
                 :status => @starter.status(config.core_base),
                 :last_start_time => config.last_start_time,
                 :agent_status => 'online',
-                :galaxy_version => Galaxy::Version
+                :galaxy_version => Galaxy::Version,
+                :slot_info => @slot_info.get_slot_info
             )
         end
 

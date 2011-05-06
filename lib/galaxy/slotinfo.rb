@@ -33,6 +33,10 @@ module Galaxy
     def get_file_name
       @db.file_for('slot_info')
     end
+
+    def get_slot_info
+      YAML.load(@db['slot_info'])
+    end
   end
 end
 
