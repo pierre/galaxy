@@ -1,6 +1,3 @@
-$:.unshift File.join(File.dirname(__FILE__), "..", "lib")
-$:.unshift File.join(File.dirname(__FILE__))
-
 require 'test/unit'
 require 'ostruct'
 require 'galaxy/filter'
@@ -42,12 +39,18 @@ class TestFilter < Test::Unit::TestCase
     @agents = [@null, @foo, @bar, @baz, @blee]
   end
     
-  def test_filter_none
+  def test_filter_default
     filter = Galaxy::Filter.new({ })
     
+    assert_equal @agents.size, @agents.select(&filter).size
+  end
+
+  def test_filter_none
+    filter = Galaxy::Filter.new({ :set => :none})
+
     assert_equal 0, @agents.select(&filter).size
   end
-  
+
   def test_filter_by_known_host
     filter = Galaxy::Filter.new :agent_id => "foo"
 

@@ -4,6 +4,8 @@ module Galaxy
         def become! requested_config_path, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy # TODO - make this configurable w/ default
             lock
 
+            current_deployment = current_deployment_number
+
             begin
                 requested_config = Galaxy::SoftwareConfiguration.new_from_config_path(requested_config_path)
 
@@ -41,8 +43,12 @@ module Galaxy
 
                 archive_path = @fetcher.fetch type, build
 
-                new_deployment = current_deployment_number + 1
-                core_base = deployer.deploy(new_deployment, archive_path, requested_config.config_path, @repository_base, @binaries_base)
+                new_deployment = current_deployment + 1
+
+                # Update the slot_info to reflect the new deployment state
+                slot_info.update requested_config.config_path, deployer.core_base_for(new_deployment)
+                core_base = deployer.deploy(new_deployment, archive_path, requested_config.config_path)
+
                 deployer.activate(new_deployment)
                 FileUtils.rm(archive_path) if archive_path && File.exists?(archive_path)
 
@@ -57,6 +63,9 @@ module Galaxy
                 announce
                 return status
             rescue Exception => e
+                # Roll slot_info back
+                slot_info.update config.config_path, deployer.core_base_for(current_deployment)
+
                 error_reason = "Unable to become #{requested_config_path}: #{e}"
                 @logger.error error_reason
                 raise error_reason
@@ -112,10 +121,16 @@ module Galaxy
 
                 @logger.info "Updating configuration to #{requested_config.config_path}"
 
-                controller = Galaxy::Controller.new @db, config.core_base, config.config_path, @repository_base, @binaries_base, @logger, @machine, @agent_id, @agent_group, @slot_environment
+                controller = Galaxy::Controller.new slot_info, config.core_base, @logger
+                current_deployment = current_deployment_number
+
                 begin
+                    slot_info.update requested_config.config_path, deployer.core_base_for(current_deployment)
                     controller.perform! 'update-config', requested_config.config_path
                 rescue Exception => e
+                    # Roll slot_info back
+                    slot_info.update config.config_path, deployer.core_base_for(current_deployment)
+
                     error_reason = "Failed to update configuration for #{requested_config.config_path}: #{e}"
                     raise error_reason
                 end
@@ -125,7 +140,7 @@ module Galaxy
                                          :core_base => config.core_base,
                                          :config_path => requested_config.config_path)
 
-                write_config(current_deployment_number, @config)
+                write_config(current_deployment, @config)
 
                 announce
                 return status
@@ -147,7 +162,7 @@ module Galaxy
 
                 if current_deployment_number > 0
                     write_config current_deployment_number, OpenStruct.new()
-                    @core_base = @deployer.rollback current_deployment_number
+                    @core_base = deployer.rollback current_deployment_number
                     self.current_deployment_number = current_deployment_number - 1
                 end
 
@@ -167,7 +182,7 @@ module Galaxy
             lock
 
             begin
-                @deployer.cleanup_up_to_previous current_deployment_number, @db
+                deployer.cleanup_up_to_previous current_deployment_number, @db
                 announce
                 return status
             rescue Exception => e
@@ -277,7 +292,7 @@ module Galaxy
 
             begin
                 @logger.info "Performing command #{command} with arguments #{args}"
-                controller = Galaxy::Controller.new @db, config.core_base, config.config_path, @repository_base, @binaries_base, @logger, @machine, @agent_id, @agent_group, @slot_environment
+                controller = Galaxy::Controller.new slot_info, config.core_base, @logger
                 output = controller.perform! command, args
 
                 announce

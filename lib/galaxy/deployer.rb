@@ -3,13 +3,18 @@ require 'tempfile'
 require 'logger'
 require 'yaml'
 require 'galaxy/host'
+require 'galaxy/slotinfo'
 
 module Galaxy
     class Deployer
         attr_reader :log
 
-        def initialize deploy_dir, log, db, machine, agent_id, agent_group, slot_environment = nil
-            @base, @log, @db, @machine, @agent_id, @agent_group, @slot_environment = deploy_dir, log, db, machine, agent_id, agent_group, slot_environment
+        def initialize repository_base, binaries_base, deploy_dir, log, slot_info
+            @repository_base = repository_base
+            @binaries_base = binaries_base
+            @base = deploy_dir
+            @log = log
+            @slot_info = slot_info
         end
 
         def core_base_for number
@@ -19,7 +24,7 @@ module Galaxy
         # number is the deployment number for this agent
         # archive is the path to the binary archive to deploy
         # props are the properties (configuration) for the core
-        def deploy number, archive, config_path, repository_base, binaries_base
+        def deploy number, archive, config_path
             core_base = core_base_for(number)
             FileUtils.mkdir_p core_base
 
@@ -37,18 +42,7 @@ module Galaxy
                 xndeploy = "/bin/sh #{xndeploy}"
             end
 
-            slot_info = OpenStruct.new(:base => core_base,
-                                        :binaries => binaries_base,
-                                        :config_path => config_path,
-                                        :repository => repository_base,
-                                        :machine => @machine,
-                                        :agent_id => @agent_id,
-                                        :agent_group => @agent_group,
-                                        :env => @slot_environment)
-
-            @db['slot_info'] = YAML.dump slot_info
-
-            command = "#{xndeploy} --slot-info #{@db.file_for('slot_info')}"
+            command = "#{xndeploy} --slot-info #{@slot_info.get_file_name}"
             begin
                 Galaxy::HostUtils.system command
             rescue Galaxy::HostUtils::CommandFailedError => e

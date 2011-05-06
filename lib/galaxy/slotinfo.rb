@@ -17,14 +17,14 @@ module Galaxy
     # Writes the current state of the world into the 
     # slot_info file. 
     def update config_path, core_base
-      slot_info = OpenStruct.new(:base =>        core_base,
+      slot_info = OpenStruct.new(:base =>         core_base,
                                  :config_path => config_path,
                                  :repository =>  @repository_base,
                                  :binaries =>    @binaries_base,
                                  :machine =>     @machine,
                                  :agent_id =>    @agent_id,
                                  :agent_group => @agent_group,
-                                 :env =>         @slot_environment)
+                                 :env =>          @slot_environment)
 
       @log.debug "Slot Info now #{slot_info}"
       @db['slot_info'] = YAML.dump slot_info

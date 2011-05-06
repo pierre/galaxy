@@ -20,11 +20,12 @@ require 'galaxy/starter'
 require 'galaxy/transport'
 require 'galaxy/version'
 require 'galaxy/versioning'
+require 'galaxy/slotinfo'
 
 module Galaxy
     class Agent
         attr_reader :agent_id, :agent_group, :machine, :config, :locked, :logger, :gonsole_url
-        attr_accessor :starter, :fetcher, :deployer, :db
+        attr_accessor :starter, :fetcher, :deployer, :db, :slot_info
 
         include Galaxy::AgentRemoteApi
 
@@ -36,6 +37,8 @@ module Galaxy
             @machine = machine
             @http_user = http_user
             @http_password = http_password
+            @repository_base = repository_base
+            @binaries_base = binaries_base
 
             @logger = Galaxy::Log::Glogger.new log
             @logger.log.level = log_level
@@ -58,11 +61,10 @@ module Galaxy
             @prop_builder = Galaxy::Properties::Builder.new repository_base, @http_user, @http_password, @logger
             @repository = Galaxy::Repository.new repository_base, @logger
             @db = Galaxy::DB.new data_dir
-            @deployer = Galaxy::Deployer.new deploy_dir, @logger, @db, @machine, @agent_id, @agent_group, @slot_environment
+            @slot_info = Galaxy::SlotInfo.new @db, repository_base, binaries_base, @logger, @machine, @agent_id, @agent_group, @slot_environment
+            @deployer = Galaxy::Deployer.new repository_base, binaries_base, deploy_dir, @logger, @slot_info
             @fetcher = Galaxy::Fetcher.new binaries_base, @http_user, @http_password, @logger
             @starter = Galaxy::Starter.new @logger, @db
-            @repository_base = repository_base
-            @binaries_base = binaries_base
 
             if RUBY_PLATFORM =~ /\w+-(\D+)/
                 @os = $1
@@ -71,7 +73,11 @@ module Galaxy
 
             @logger.debug "Detected machine: #{@machine}"
 
-            @config = read_config current_deployment_number
+            current_deployment = current_deployment_number
+            @config = read_config current_deployment
+
+            # Make sure that the slot_info file is current.
+            @slot_info.update @config.config_path, @deployer.core_base_for(current_deployment)
 
             Galaxy::Transport.publish url, self, @logger
             announce

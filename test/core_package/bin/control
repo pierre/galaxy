@@ -34,9 +34,11 @@ risus. Praesent rutrum lectus quis dolor. Aliquam arcu. Sed vulputate mauris.
   EOM
   exit 0
 when 'test-arguments'
-  if (@core_base and 
+  puts @repository_base
+
+    if (@core_base and
       File.join(@core_base, 'bin', 'control') == File.expand_path(__FILE__) and
-      @config_path == '/config/path' and
+      @config_path == '/env/version/type' and
       @repository_base == 'http://repository/base' and
       @binaries_base == 'http://binaries/base')
     exit 0

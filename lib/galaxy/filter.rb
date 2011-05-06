@@ -6,6 +6,8 @@ module Galaxy
             case args[:set]
                 when :all, "all"
                     filters << lambda { true }
+              when :none, "none"
+                  filters << lambda { false }
                 when :empty, "empty"
                     filters << lambda { |a| a.config_path.nil? }
                 when :taken, "taken"

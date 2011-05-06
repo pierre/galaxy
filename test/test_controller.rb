@@ -1,11 +1,9 @@
-$:.unshift File.join(File.dirname(__FILE__), "..", "lib")
-$:.unshift File.join(File.dirname(__FILE__))
-
 require 'test/unit'
 require 'galaxy/controller'
 require 'galaxy/deployer'
 require 'galaxy/host'
 require 'galaxy/db'
+require 'galaxy/slotinfo'
 require 'helper'
 require 'fileutils'
 require 'logger'
@@ -21,9 +19,19 @@ class TestController < Test::Unit::TestCase
     ENV["RUBYLIB"] =  File.join(File.dirname(__FILE__), "..", "lib")
     @path = Helper.mk_tmpdir
     @db = Galaxy::DB.new @path
-    @deployer = Galaxy::Deployer.new @path, Logger.new("/dev/null"), @db, "machine", "slot", "group"
-    @core_base = @deployer.deploy "1", @core_package, "/config", "/repository", "/binaries"
-    @controller = Galaxy::Controller.new @db, @core_base, '/config/path', 'http://repository/base', 'http://binaries/base', Logger.new("/dev/null"), "machine", "slot", "group"
+    log = Logger.new("/dev/null")
+    current_number = 1
+    config ="/env/version/type"
+
+    @slot_info = Galaxy::SlotInfo.new @db, "http://repository/base", "http://binaries/base", log, "machine", "slot", "group"
+
+    @deployer = Galaxy::Deployer.new "http://repository/base", "http://binaries/base", @path, log, @slot_info
+    @slot_info.update config, @deployer.core_base_for(current_number)
+    @core_base = @deployer.deploy current_number, @core_package, config
+    @controller = Galaxy::Controller.new @slot_info, @core_base, log
+
+    # Hack the environment to allow the spawned scripts to find galaxy/scripts
+    ENV["RUBYLIB"] =  File.join(File.dirname(__FILE__), "..", "lib")
   end
   
   def test_perform_success

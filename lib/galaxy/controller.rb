@@ -1,18 +1,14 @@
 require 'logger'
 require 'yaml'
 
+require 'galaxy/slotinfo'
+
 module Galaxy
     class Controller
-        def initialize db, core_base, config_path, repository_base, binaries_base, log, machine, agent_id, agent_group, slot_environment = nil
-            @db = db
+        def initialize slot_info, core_base, log
+            @slot_info = slot_info
             @core_base = core_base
-            @config_path = config_path
-            @repository_base = repository_base
-            @binaries_base = binaries_base
-            @machine = machine
-            @agent_id = agent_id
-            @agent_group = agent_group
-            @slot_environment = slot_environment
+            @log = log
 
             script = File.join(@core_base, "bin", "control")
             if File.exists? script
@@ -20,23 +16,11 @@ module Galaxy
             else
                 raise ControllerNotFoundException.new
             end
-            @log = log
         end
 
         def perform! command, args = ''
-            exec_script="#{@script} --slot-info #{@db.file_for('slot_info')} #{command} #{args}"
+            exec_script="#{@script} --slot-info #{@slot_info.get_file_name} #{command} #{args}"
             @log.info "Invoking control script: #{exec_script}"
-
-            slot_info = OpenStruct.new(:base => @core_base,
-                                        :binaries => @binaries_base,
-                                        :config_path => @config_path,
-                                        :repository => @repository_base,
-                                        :machine => @machine,
-                                        :agent_id => @agent_id,
-                                        :agent_group => @agent_group,
-                                        :env => @slot_environment)
-
-            @db['slot_info'] = YAML.dump slot_info
 
             begin
                 output = `#{exec_script} 2>&1`
