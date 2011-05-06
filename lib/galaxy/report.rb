@@ -74,7 +74,7 @@ module Galaxy
             private
 
             def format_string
-                STDOUT.tty? ? "%-10s %-10s %-45s %-10s %-15s %-20s %-20s %-15s %-8s\n" : "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n"
+                STDOUT.tty? ? "%-10s %-10s %-45s %-10s %-30s %-30s %-20s %-15s %-8s\n" : "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n"
             end
 
             def format_field field
@@ -100,7 +100,7 @@ module Galaxy
             private
 
             def format_string
-                STDOUT.tty? ? "%-10s %-10s %-45s %-10s %-15s %-20s %-14s\n" : "%s\t%s\t%s\t%s\t%s\t%s\n"
+                STDOUT.tty? ? "%-10s %-10s %-45s %-10s %-30s %-30s %-14s\n" : "%s\t%s\t%s\t%s\t%s\t%s\n"
             end
 
             def format_field field
@@ -124,7 +124,7 @@ module Galaxy
             private
 
             def format_string
-                STDOUT.tty? ? "%-45s %-10s %-15s %-20s %s\n" : "%s\t%s\t%s\t%s\t%s\n"
+                STDOUT.tty? ? "%-45s %-10s %-30s %-30s %s\n" : "%s\t%s\t%s\t%s\t%s\n"
             end
 
             def format_field field
