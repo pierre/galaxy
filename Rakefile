@@ -141,25 +141,4 @@ namespace :package do
     FileUtils.rm_rf(rpm_dir)
   end
 
-  desc "Build a Sun package"
-  task :sunpkg => :versioned_gem do
-    build_dir = "#{Dir.tmpdir}/galaxy-package"
-    source_dir = File.dirname(__FILE__)
-
-    FileUtils.rm_rf(build_dir)
-    FileUtils.mkdir_p(build_dir)
-    FileUtils.cp_r("#{source_dir}/build/sun/.", build_dir)
-    FileUtils.cp("#{source_dir}/pkg/#{PACKAGE_NAME}-#{PACKAGE_VERSION}.gem", "#{build_dir}/#{PACKAGE_NAME}.gem")
-    FileUtils.mkdir_p("#{build_dir}/root/lib/svc/method")
-
-    # Expand version tokens
-    `ruby -pi -e "gsub('\#{PACKAGE_VERSION}', '#{PACKAGE_VERSION}'); gsub('\#{GEM_VERSION}', '#{GEM_VERSION}')" #{build_dir}/*`
-
-    # Build the package
-    `cd #{build_dir} && pkgmk -r root -d .` || raise("Failed to create package")
-    `cd #{build_dir} && pkgtrans -s . #{PACKAGE_NAME}.pkg galaxy` || raise("Failed to translate package")
-
-    FileUtils.cp("#{build_dir}/#{PACKAGE_NAME}.pkg", "#{source_dir}/pkg/#{PACKAGE_NAME}-#{PACKAGE_VERSION}.pkg")
-    FileUtils.rm_rf(build_dir)
-  end
 end
