@@ -37,12 +37,11 @@ module Galaxy
             end
 
             if args[:agent_state]
-                p args[:agent_state]
-                filters << lambda { |a| p a.agent_status; a.agent_status == args[:agent_state] }
+                filters << lambda { |a| a.agent_status == args[:agent_state] }
             end
 
             lambda do |a|
-                filters.inject(false) { |result, filter| result || filter.call(a) }
+                filters.inject(true) { |result, filter| result && filter.call(a) }
             end
         end
     end

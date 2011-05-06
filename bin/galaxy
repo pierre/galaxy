@@ -87,7 +87,7 @@ require 'galaxy/versioning'
 
     opts.separator ""
     opts.separator "Notes:"
-    opts.separator "    - Filters are evaluated as: set | host | (env & version & type)"
+    opts.separator "    - All filters are ANDed."
     opts.separator "    - The HOST, MACHINE, and TYPE arguments are regular expressions (not globs)"
     opts.separator "    - The default filter selects all hosts"
 
