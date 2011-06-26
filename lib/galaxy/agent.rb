@@ -11,7 +11,6 @@ require 'galaxy/config'
 require 'galaxy/controller'
 require 'galaxy/db'
 require 'galaxy/deployer'
-require 'galaxy/events'
 require 'galaxy/fetcher'
 require 'galaxy/log'
 require 'galaxy/properties'
@@ -21,26 +20,30 @@ require 'galaxy/starter'
 require 'galaxy/transport'
 require 'galaxy/version'
 require 'galaxy/versioning'
+require 'galaxy/slotinfo'
 
 module Galaxy
     class Agent
-        attr_reader :host, :machine, :config, :locked, :logger, :gonsole_url
-        attr_accessor :starter, :fetcher, :deployer, :db
+        attr_reader :agent_id, :agent_group, :machine, :config, :locked, :logger, :gonsole_url
+        attr_accessor :starter, :fetcher, :deployer, :db, :slot_info
 
         include Galaxy::AgentRemoteApi
 
-        def initialize host, url, machine, announcements_url, repository_base, deploy_dir,
-            data_dir, binaries_base, http_user, http_password, log, log_level, announce_interval, event_listener
+        def initialize agent_id, agent_group, url, machine, announcements_url, repository_base, deploy_dir,
+            data_dir, binaries_base, http_user, http_password, slot_environment, log, log_level, announce_interval
             @drb_url = url
-            @host = host
+            @agent_id = agent_id
+            @agent_group = agent_group
             @machine = machine
             @http_user = http_user
             @http_password = http_password
-            @ip = Resolv.getaddress(@host)
+            @repository_base = repository_base
+            @binaries_base = binaries_base
 
-            # Setup the logger and the event dispatcher (HDFS) if needed
-            @logger = Galaxy::Log::Glogger.new log, event_listener, announcements_url, @ip
+            @logger = Galaxy::Log::Glogger.new log
             @logger.log.level = log_level
+
+            @slot_environment = load_slot_environment slot_environment
 
             @lock = OpenStruct.new(:owner => nil, :count => 0, :mutex => Mutex.new)
 
@@ -48,18 +51,20 @@ module Galaxy
             @gonsole_url = announcements_url
             @announcer = Galaxy::Transport.locate announcements_url, @logger
 
-            # Setup event listener
-            @event_dispatcher = Galaxy::GalaxyEventSender.new(event_listener, @gonsole_url, @ip, @logger)
+            # Create missing folders if they don't already exist. This needs
+            # to be done here, so that in case that the agent changes the user to run as
+            # it is done as the new user, not as the old (root) user.
+            FileUtils.mkdir_p(deploy_dir) unless File.exists? deploy_dir
+            FileUtils.mkdir_p(data_dir) unless File.exists? data_dir
 
             @announce_interval = announce_interval
             @prop_builder = Galaxy::Properties::Builder.new repository_base, @http_user, @http_password, @logger
             @repository = Galaxy::Repository.new repository_base, @logger
-            @deployer = Galaxy::Deployer.new deploy_dir, @logger, @machine, @host
-            @fetcher = Galaxy::Fetcher.new binaries_base, @http_user, @http_password, @logger
-            @starter = Galaxy::Starter.new @logger
             @db = Galaxy::DB.new data_dir
-            @repository_base = repository_base
-            @binaries_base = binaries_base
+            @slot_info = Galaxy::SlotInfo.new @db, repository_base, binaries_base, @logger, @machine, @agent_id, @agent_group, @slot_environment
+            @deployer = Galaxy::Deployer.new repository_base, binaries_base, deploy_dir, @logger, @slot_info
+            @fetcher = Galaxy::Fetcher.new binaries_base, @http_user, @http_password, @logger
+            @starter = Galaxy::Starter.new @logger, @db
 
             if RUBY_PLATFORM =~ /\w+-(\D+)/
                 @os = $1
@@ -68,9 +73,13 @@ module Galaxy
 
             @logger.debug "Detected machine: #{@machine}"
 
-            @config = read_config current_deployment_number
+            current_deployment = current_deployment_number
+            @config = read_config current_deployment
 
-            Galaxy::Transport.publish url, self
+            # Make sure that the slot_info file is current.
+            @slot_info.update @config.config_path, @deployer.core_base_for(current_deployment)
+
+            Galaxy::Transport.publish url, self, @logger
             announce
             sync_state!
 
@@ -80,6 +89,23 @@ module Galaxy
                     announce
                 end
             end
+        end
+
+        #
+        # Loads the slot environment file for this
+        # deployment. This is stored alongside the 
+        # actual slot data for later use.
+        #
+        def load_slot_environment slot_environment
+          unless slot_environment.nil? 
+            begin
+              File.open slot_environment, "r" do |f|
+                return YAML.load(f.read)
+              end
+            rescue Errno::ENOENT
+            end
+          end
+          return {}
         end
 
         def lock
@@ -105,8 +131,8 @@ module Galaxy
 
         def status
             OpenStruct.new(
-                :host => @host,
-                :ip => @ip,
+                :agent_id => @agent_id,
+                :agent_group => @agent_group,
                 :url => @drb_url,
                 :os => @os,
                 :machine => @machine,
@@ -116,20 +142,19 @@ module Galaxy
                 :status => @starter.status(config.core_base),
                 :last_start_time => config.last_start_time,
                 :agent_status => 'online',
-                :galaxy_version => Galaxy::Version
+                :galaxy_version => Galaxy::Version,
+                :slot_info => @slot_info.get_slot_info
             )
         end
 
         def announce
             begin
                 res = @announcer.announce status
-                @event_dispatcher.dispatch_announce_success_event status
                 return res
             rescue Exception => e
                 error_reason = "Unable to communicate with console, #{e.message}"
                 @logger.warn "Unable to communicate with console, #{e.message}"
                 @logger.warn e
-                @event_dispatcher.dispatch_announce_error_event error_reason
             end
         end
 
@@ -200,30 +225,24 @@ module Galaxy
             @thread.join
         end
 
-        # args: host => IP/Name to uniquely identify this agent
-        #     console => hostname of the console
+        # args: agent_url => URL that this agent is listening to
+        #       agent_group/agent_id  to uniquely identify this agent
+        #     console_url => URL of the console
         #     repository => base of url to repository
         #     binaries => base of url=l to binary repository
         #     deploy_dir => /path/to/deployment
         #     data_dir => /path/to/agent/data/storage
         #     log => /path/to/log || STDOUT || STDERR || SYSLOG
         #     url => url to listen on
-        #     event_listener => url of the event listener
         def Agent.start args
-            host_url = args[:host] || "localhost"
-            host_url = "druby://#{host_url}" unless host_url.match("^http://") || host_url.match("^druby://") # defaults to drb
-            host_url = "#{host_url}:4441" unless host_url.match ":[0-9]+$"
+            agent_url = args[:agent_url] || "druby://localhost:4441"
+            agent_url = "druby://#{agent_url}" unless agent_url.match("^http://") || agent_url.match("^druby://") # defaults to drb
+            agent_url = "#{agent_url}:4441" unless agent_url.match ":[0-9]+$"
 
             # default console to http/4442 unless specified
-            console_url = args[:console] || "localhost"
+            console_url = args[:console] || "http://localhost:4442"
             console_url = "http://" + console_url unless console_url.match("^http://") || console_url.match("^druby://")
             console_url += ":4442" unless console_url.match ":[0-9]+$"
-
-            # need host as simple name without protocol or port
-            host = args[:host] || "localhost"
-            host = host.sub(/^http:\/\//, "")
-            host = host.sub(/^druby:\/\//, "")
-            host = host.sub(/:[0-9]+$/, "")
 
             if args[:machine]
                 machine = args[:machine]
@@ -238,20 +257,29 @@ module Galaxy
                 end
             end
 
-            agent = Agent.new host,
-                              host_url,
+            repository = args[:repository] || "/tmp/galaxy-agent-properties"
+            deploy_dir = args[:deploy_dir] || "/tmp/galaxy-agent-deploy"
+            data_dir = args[:data_dir] || "/tmp/galaxy-agent-data"
+            binaries = args[:binaries] || "http://localhost:8000"
+            log = args[:log] || "STDOUT"
+            log_level = args[:log_level] || Logger::INFO
+            announce_interval = args[:announce_interval] || 60
+
+            agent = Agent.new args[:agent_id],
+                              args[:agent_group],
+                              agent_url,
                               machine,
                               console_url,
-                              args[:repository] || "/tmp/galaxy-agent-properties",
-                              args[:deploy_dir] || "/tmp/galaxy-agent-deploy",
-                              args[:data_dir] || "/tmp/galaxy-agent-data",
-                              args[:binaries] || "http://localhost:8000",
+                              repository,
+                              deploy_dir,
+                              data_dir,
+                              binaries,
                               args[:http_user],
                               args[:http_password],
-                              args[:log] || "STDOUT",
-                              args[:log_level] || Logger::INFO,
-                              args[:announce_interval] || 60,
-                              args[:event_listener]
+                              args[:slot_environment],
+                              log,
+                              log_level,
+                              announce_interval
 
             agent
         end

@@ -1,21 +1,31 @@
 require 'fileutils'
 require 'tempfile'
 require 'logger'
+require 'yaml'
 require 'galaxy/host'
+require 'galaxy/slotinfo'
 
 module Galaxy
     class Deployer
         attr_reader :log
 
-        def initialize deploy_dir, log, machine, host
-            @base, @log, @machine, @host = deploy_dir, log, machine, host
+        def initialize repository_base, binaries_base, deploy_dir, log, slot_info
+            @repository_base = repository_base
+            @binaries_base = binaries_base
+            @base = deploy_dir
+            @log = log
+            @slot_info = slot_info
+        end
+
+        def core_base_for number
+            core_base = File.join(@base, number.to_s);
         end
 
         # number is the deployment number for this agent
         # archive is the path to the binary archive to deploy
         # props are the properties (configuration) for the core
-        def deploy number, archive, config_path, repository_base, binaries_base
-            core_base = File.join(@base, number.to_s);
+        def deploy number, archive, config_path
+            core_base = core_base_for(number)
             FileUtils.mkdir_p core_base
 
             log.info "deploying #{archive} to #{core_base} with config path #{config_path}"
@@ -32,7 +42,7 @@ module Galaxy
                 xndeploy = "/bin/sh #{xndeploy}"
             end
 
-          command = "#{xndeploy} --base #{core_base} --binaries #{binaries_base} --config-path #{config_path} --repository #{repository_base} --machine #{@machine} --host #{@host}"
+            command = "#{xndeploy} --slot-info #{@slot_info.get_file_name}"
             begin
                 Galaxy::HostUtils.system command
             rescue Galaxy::HostUtils::CommandFailedError => e

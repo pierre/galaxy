@@ -1,6 +1,3 @@
-$:.unshift File.join(File.dirname(__FILE__), "..", "lib")
-$:.unshift File.join(File.dirname(__FILE__))
-
 require 'test/unit'
 require 'galaxy/transport'
 require 'galaxy/agent'
@@ -27,6 +24,9 @@ class TestAgent < Test::Unit::TestCase
 
     system "#{Galaxy::HostUtils.tar} -C #{File.join(File.dirname(__FILE__), "core_package")} -czf #{@binaries_base}/test-1.0-12345.tar.gz ."
 
+    # Hack the environment to allow the spawned scripts to find galaxy/scripts
+    ENV["RUBYLIB"] =  File.join(File.dirname(__FILE__), "..", "lib")
+
     webrick_logger =  Logger.new(STDOUT)
     webrick_logger.level = Logger::WARN
     @server = WEBrick::HTTPServer.new(:Port => 8000, :Logger => webrick_logger)
@@ -51,8 +51,10 @@ class TestAgent < Test::Unit::TestCase
                                   :data_dir => @data_dir,
                                   :deploy_dir => @deploy_dir,
                                   :log_level => Logger::WARN,
-                                  :host => "druby://127.0.0.1:4441",
-                                  :console => "http://127.0.0.1:8000"
+                                  :agent_url => "druby://127.0.0.1:4441",
+                                  :console => "http://127.0.0.1:8000",
+                                  :agent_id => "test_agent",
+                                  :agent_group => "test_group"
                                   })
   end
 

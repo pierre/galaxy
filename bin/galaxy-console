@@ -2,22 +2,15 @@
 require 'optparse'
 require 'ostruct'
 
-tried = false
-begin
-    require 'galaxy/console'
-    require 'galaxy/proxy_console'
-    require 'galaxy/config'
-    require 'galaxy/daemon'
-    require 'galaxy/host'
-    require 'galaxy/version'
-rescue LoadError
-    tried = true
-    $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
-    tried ? raise : retry
-end
+require 'galaxy/console'
+require 'galaxy/proxy_console'
+require 'galaxy/config'
+require 'galaxy/daemon'
+require 'galaxy/host'
+require 'galaxy/version'
 
 action = "help"
-command_line_options = OpenStruct.new
+command_line_options = OpenStruct.new( :verbose => false, :test => false, :foreground => false )
 opts = OptionParser.new do |opts|
     opts.banner = "Usage: #{$0} <command> [options]"
 
@@ -43,9 +36,8 @@ opts = OptionParser.new do |opts|
         command_line_options.foreground = true
     end
     opts.on("-Q", "--console-proxied-url URL", "Gonsole to proxy") do |host|
-        command_line_options.console_proxyied_url = host
+        command_line_options.console_proxied_url = host
     end
-
 
     opts.separator "  General Options"
     opts.on_tail("-l", "--log LOG", "STDOUT | STDERR | SYSLOG | /path/to/file.log") do |log|
@@ -54,19 +46,16 @@ opts = OptionParser.new do |opts|
     opts.on_tail("-L", "--log-level LEVEL", "DEBUG | INFO | WARN | ERROR. Default=INFO") do |level|
         command_line_options.log_level = level
     end
-    opts.on_tail("-g", "--console-log FILE", "File agent should redirect stdout and stderr to") do |log|
-        command_line_options.agent_log = log
-    end
+
     opts.on_tail("-u", "--user USER", "User to run as") do |arg|
         command_line_options.user = arg
     end
-    opts.on("-z", "--event_listener URL", "Which listener to use") do |event_listener|
-        command_line_options.event_listener = event_listener
-    end
+
     opts.on_tail("-t", "--test", "Test, displays as -v without doing anything") do
         command_line_options.verbose = true
         command_line_options.test = true
     end
+
     opts.on_tail("-v", "--verbose", "Verbose output") { command_line_options.verbose = true }
     opts.on_tail("-V", "--version", "Print the galaxy version and exit") { action = "version" }
     opts.on_tail("-h", "--help", "Show this help") { action = "help" }
@@ -100,6 +89,7 @@ case action
                 console.join
             end
         end
+
     when "start-proxy"
         config = Galaxy::ConsoleConfigurator.new(command_line_options).configure
         exit if command_line_options.test
@@ -112,6 +102,7 @@ case action
                 console.join
             end
         end
+
     when "stop"
         config = Galaxy::ConsoleConfigurator.new(command_line_options).configure
         begin
@@ -119,5 +110,4 @@ case action
         rescue Exception => e
             abort("Error: #{e}")
         end
-
 end

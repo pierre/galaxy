@@ -1,5 +1,3 @@
-$:.unshift File.join(File.dirname(__FILE__), "..", "lib")
-
 require 'test/unit'
 require "galaxy/properties"
 require 'logger'
@@ -9,7 +7,7 @@ class TestPropertyBuilder < Test::Unit::TestCase
   PropertyBase = File.dirname(__FILE__) + "/property_data"
   
   def setup
-    @builder = Galaxy::Properties::Builder.new PropertyBase, Logger.new("/dev/null")
+    @builder = Galaxy::Properties::Builder.new PropertyBase, nil, nil, Logger.new("/dev/null")
   end
   
   def test_simple

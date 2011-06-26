@@ -1,8 +1,4 @@
-$:.unshift File.join(File.dirname(__FILE__), "..", "lib")
-$:.unshift File.join(File.dirname(__FILE__))
-
 require 'test/unit'
-require 'galaxy/events'
 require 'galaxy/host'
 require 'galaxy/log'
 
@@ -15,15 +11,8 @@ class TestLogger < Test::Unit::TestCase
         FileUtils.rm Dir.glob('/tmp/galaxy_unit_test.log*')
     end
 
-    def test_initialize_dummy_event_sender
+    def test_initialize
         glogger = Galaxy::Log::Glogger.new "/tmp/galaxy_unit_test.log"
-        assert_kind_of Galaxy::DummyEventSender, glogger.event_dispatcher
-        assert_kind_of Logger, glogger.log
-    end
-
-    def test_initialize_collector
-        glogger = Galaxy::Log::Glogger.new "/tmp/galaxy_unit_test.log", "http://collector.com"
-        assert_kind_of Galaxy::GalaxyLogEventSender, glogger.event_dispatcher
         assert_kind_of Logger, glogger.log
     end
 
@@ -39,22 +28,6 @@ class TestLogger < Test::Unit::TestCase
     def test_syslog_raw
         logger = Galaxy::HostUtils.logger
         assert logger << "foo bar baz"
-    end
-
-    def test_respect_loglevel_with_event_dispatcher
-        glogger = Galaxy::Log::Glogger.new "/tmp/galaxy_unit_test.log", "non-existent-host", "http://gonsole.test.company.com:1242", "10.15.12.14"
-        assert_kind_of Galaxy::GalaxyLogEventSender, glogger.event_dispatcher
-        assert_kind_of Logger, glogger.log
-
-        # Make sure we don't try to send events at the wrong level
-
-        glogger.log.level = Logger::INFO
-        assert glogger.debug("debug hello from unit test")
-
-        glogger.log.level = Logger::DEBUG
-        assert_raise URI::BadURIError do
-            glogger.debug("debug hello from unit test")
-        end
     end
 
     def test_syslog_level

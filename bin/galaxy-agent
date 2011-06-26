@@ -1,34 +1,36 @@
 #!/usr/bin/env ruby
 
-tried = false
-begin
-    require 'galaxy/agent'
-    require 'galaxy/daemon'
-    require 'galaxy/config'
-    require 'galaxy/version'
-rescue LoadError
-    tried = true
-    $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
-    tried ? raise : retry
-end
+require 'galaxy/agent'
+require 'galaxy/daemon'
+require 'galaxy/config'
+require 'galaxy/version'
+
 require 'optparse'
 require 'ostruct'
 
 action = "help"
-command_line_options = OpenStruct.new
+command_line_options = OpenStruct.new( :verbose => false, :test => false, :foreground => false )
 opts = OptionParser.new do |opts|
     opts.banner = "Usage: #{$0} <command> [options]"
 
     opts.separator "  Commands, use just one of these"
+
     opts.on("-s", "--start", "Start the agent") { action = "start" }
     opts.on("-k", "--stop", "Stop the agent") { action = "stop" }
 
     opts.separator "  Options for Start"
+
     opts.on("-C", "--config FILE", "Configuration file (overrides GALAXY_CONFIG)") do |arg|
         command_line_options.config_file = arg
     end
-    opts.on("-i", "--host HOST[:PORT]", "Hostname this agent manages (default localhost)") do |host|
-        command_line_options.host = host
+    opts.on("-i", "--identifier IDENTIFIER", "Slot identifier this agent manages (default *unset*)") do |agent_id|
+        command_line_options.agent_id = agent_id
+    end
+    opts.on("-g", "--group GROUP", "Slot grouping that this agent belongs to (default *unknown*)") do |agent_group|
+        command_line_options.agent_group = agent_group
+    end
+    opts.on("-U", "--agent-url ['http://'|'druby://']HOST[:PORT]", "Local Agent URL that the agent announces. Default: druby://localhost:4441") do |agent_url|
+        command_line_options.agent_url = agent_url
     end
     opts.on("-m", "--machine MACHINE", "Physical machine where the agent lives (overrides -M)") do |machine|
         command_line_options.machine = machine
@@ -57,8 +59,12 @@ opts = OptionParser.new do |opts|
     opts.on("-a", "--announce-interval INTERVAL", "How frequently (in seconds) the agent should announce") do |interval|
         command_line_options.announce_interval = interval
     end
+    opts.on("-e", "--slot-environment FILE", "YAML file containing the slot environment for the deployment") do |slot_environment|
+        command_line_options.slot_environment = slot_environment
+    end
 
     opts.separator "  General Options"
+
     opts.on_tail("-l", "--log LOG", "STDOUT | STDERR | SYSLOG | /path/to/file.log") do |log|
         command_line_options.log = log
     end
@@ -68,23 +74,18 @@ opts = OptionParser.new do |opts|
     opts.on_tail("-u", "--user USER", "User to run as") do |arg|
         command_line_options.user = arg
     end
-    opts.on("-z", "--event_listener URL", "Which listener to use") do |event_listener|
-        command_line_options.event_listener = event_listener
-    end
     opts.on("-H", "--http-user USER", "HTTP User for authentication.") do |http_user|
         command_line_options.http_user = http_user
     end
     opts.on("-P", "--http-password PASSWORD", "HTTP Password for authentication.") do |http_password|
         command_line_options.http_password = http_password
     end
-    opts.on_tail("-g", "--agent-log FILE", "File agent should rediect stdout and stderr to") do |log|
-        command_line_options.agent_log = log
-    end
 
     opts.on_tail("-t", "--test", "Test, displays as -v without doing anything") do
         command_line_options.verbose = true
         command_line_options.test = true
     end
+
     opts.on_tail("-v", "--verbose", "Verbose output") { command_line_options.verbose = true }
     opts.on_tail("-V", "--version", "Print the galaxy version and exit") { action = "version" }
     opts.on_tail("-h", "--help", "Show this help") { action = "help" }

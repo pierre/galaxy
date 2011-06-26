@@ -11,7 +11,6 @@ rescue LoadError
 end
 require 'resolv'
 
-require 'galaxy/events'
 require 'galaxy/filter'
 require 'galaxy/log'
 require 'galaxy/transport'
@@ -25,24 +24,19 @@ module Galaxy
             Galaxy::Transport.locate url
         end
 
-        def initialize drb_url, http_url, log, log_level, ping_interval, host, env, event_listener
+        def initialize drb_url, http_url, log, log_level, ping_interval, host, env
             @host = host
-            @ip = Resolv.getaddress(@host)
             @env = env
 
             @drb_url = drb_url
             @http_url = http_url
 
-            # Setup the logger and the event dispatcher (HDFS) if needed
-            @logger = Galaxy::Log::Glogger.new(log, event_listener, @http_url, @ip)
+            @logger = Galaxy::Log::Glogger.new(log)
             @logger.log.level = log_level
 
             @ping_interval = ping_interval
             @db = {}
             @mutex = Mutex.new
-
-            # set up event listener
-            @event_dispatcher = Galaxy::GalaxyEventSender.new(event_listener, @http_url, @ip, @logger)
 
             Thread.new do
                 loop do
@@ -59,9 +53,10 @@ module Galaxy
         end
 
         # Remote API
-        def reap host
+        def reap agent_id, agent_group
+            key = "#{agent_id}/#{agent_group}"
             @mutex.synchronize do
-                @db.delete host
+                @db.delete key
             end
         end
 
@@ -109,24 +104,25 @@ module Galaxy
             end
         end
 
-        # Remote API
-        def dispatch_event type, msg
-            @event_dispatcher.send("dispatch_#{type}_event", msg)
-        end
-
         def Console.start args
-            host = args[:host] || "localhost"
-            drb_url = args[:url] || "druby://" + host # DRB transport
+            drb_url = args[:url] || "druby://" + args[:host] # DRB transport
             drb_url += ":4440" unless drb_url.match ":[0-9]+$"
 
             http_url = args[:announcement_url] || "http://localhost" # http announcements
             http_url = "#{http_url}:4442" unless http_url.match ":[0-9]+$"
 
-            console = Console.new drb_url, http_url,
-                                  args[:log] || "STDOUT",
-                                  args[:log_level] || Logger::INFO,
-                                  args[:ping_interval] || 5,
-                                  host, args[:environment], args[:event_listener]
+            log = args[:log] || "STDOUT"
+            log_level = args[:log_level] || Logger::INFO
+            ping_interval = args[:ping_interval] || 5
+            host = args[:host] || "localhost"
+
+            console = Console.new drb_url, 
+                                  http_url,
+                                  log,
+                                  log_level,
+                                  ping_interval,
+                                  host, 
+                                  args[:environment]
 
             # DRb transport (galaxy command line client)
             Galaxy::Transport.publish drb_url, console, console.logger
@@ -139,9 +135,11 @@ module Galaxy
 
         def shutdown
             Galaxy::Transport.unpublish @http_url
+            Galaxy::Transport.unpublish @drb_url
         end
 
         def join
+            Galaxy::Transport.join @http_url
             Galaxy::Transport.join @drb_url
         end
 
@@ -150,45 +148,42 @@ module Galaxy
         # Update the agents database
         def announce announcement
             begin
-                host = announcement.host
-                @logger.debug "Received announcement from #{host}"
+                agent_id = announcement.agent_id
+                agent_group = announcement.agent_group
+                key = "#{agent_id}/#{agent_group}"
+                @logger.debug "Received announcement from #{agent_id}/#{agent_group}."
                 @mutex.synchronize do
-                    if @db.has_key?(host)
-                        unless @db[host].agent_status != "offline"
-                            announce_message = "#{host} is now online again"
+                    if @db.has_key?(key)
+                        unless @db[key].agent_status != "offline"
+                            announce_message = "#{key} is now online again"
                             @logger.info announce_message
-                            @event_dispatcher.dispatch_announce_success_event announce_message
                         end
-                        if @db[host].status != announcement.status
-                            announce_message = "#{host} core state changed: #{@db[host].status} --> #{announcement.status}"
+                        if @db[key].status != announcement.status
+                            announce_message = "#{key} core state changed: #{@db[key].status} --> #{announcement.status}"
                             @logger.info announce_message
-                            @event_dispatcher.dispatch_announce_success_event announce_message
                         end
                     else
-                        announce_message = "Discovered new agent: #{host} [#{announcement.inspect}]"
-                        @logger.info "Discovered new agent: #{host} [#{announcement.inspect}]"
-                        @event_dispatcher.dispatch_announce_success_event announce_message
+                        announce_message = "Discovered new agent: #{key} [#{announcement.inspect}]"
+                        @logger.info "Discovered new agent: #{key} [#{announcement.inspect}]"
                     end
 
-                    @db[host] = announcement
-                    @db[host].timestamp = Time.now
-                    @db[host].agent_status = 'online'
+                    @db[key] = announcement
+                    @db[key].timestamp = Time.now
+                    @db[key].agent_status = 'online'
                 end
             rescue RuntimeError => e
                 error_message = "Error receiving announcement: #{e}"
                 @logger.warn error_message
-                @event_dispatcher.dispatch_announce_error_event error_message
             end
         end
 
         # Iterate through the database to find agents that haven't pinged home
         def ping cutoff
             @mutex.synchronize do
-                @db.each_pair do |host, entry|
+                @db.each_pair do |key, entry|
                     if entry.agent_status != "offline" and entry.timestamp < cutoff
-                        error_message = "#{host} failed to announce; marking as offline"
+                        error_message = "#{key} failed to announce; marking as offline"
                         @logger.warn error_message
-                        @event_dispatcher.dispatch_announce_error_event error_message
 
                         entry.agent_status = "offline"
                         entry.status = "unknown"

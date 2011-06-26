@@ -1,14 +1,11 @@
-require 'galaxy/events'
 require 'galaxy/host'
 
 module Galaxy
     module Log
         class Glogger
-            attr_reader :log, :event_dispatcher
+            attr_reader :log
 
-            def initialize(logdev, event_listener = nil, gonsole_url = nil, ip_addr = nil, shift_age = 0, shift_size = 1048576)
-                @gonsole_url = gonsole_url
-
+            def initialize(logdev, shift_age = 0, shift_size = 1048576)
                 case logdev
                     when "SYSLOG"
                         @log = Galaxy::HostUtils.logger "galaxy"
@@ -19,36 +16,25 @@ module Galaxy
                     else
                         @log = Logger.new(logdev, shift_age, shift_size)
                 end
-
-                if event_listener.nil?
-                    @event_dispatcher = Galaxy::DummyEventSender.new()
-                else
-                    @event_dispatcher = Galaxy::GalaxyLogEventSender.new(event_listener, @gonsole_url, ip_addr, @log)
-                end
             end
 
             def debug(progname = nil, & block)
-                @event_dispatcher.dispatch_debug_log(format_message(progname, & block)) if @log.level <= Logger::DEBUG
                 @log.debug progname, & block
             end
 
             def error(progname = nil, & block)
-                @event_dispatcher.dispatch_error_log(format_message(progname, & block)) if @log.level <= Logger::ERROR
                 @log.error progname, & block
             end
 
             def fatal(progname = nil, & block)
-                @event_dispatcher.dispatch_fatal_log(format_message(progname, & block)) if @log.level <= Logger::FATAL
                 @log.fatal progname, & block
             end
 
             def info(progname = nil, & block)
-                @event_dispatcher.dispatch_info_log(format_message(progname, & block)) if @log.level <= Logger::INFO
                 @log.info progname, & block
             end
 
             def warn(progname = nil, & block)
-                @event_dispatcher.dispatch_warn_log(format_message(progname, & block)) if @log.level <= Logger::WARN
                 @log.warn progname, & block
             end
 

@@ -4,8 +4,9 @@ require 'logger'
 
 module Galaxy
     class Starter
-        def initialize log
+        def initialize log, db
             @log = log
+            @db = db
         end
 
         [:start!, :restart!, :stop!, :status].each do |action|
@@ -13,7 +14,7 @@ module Galaxy
                 return "unknown" if path.nil?
                 launcher_path = xnctl_path(path)
 
-                command = "#{launcher_path} #{action.to_s.chomp('!')}"
+                command = "#{launcher_path} --slot-info #{@db.file_for('slot_info')} #{action.to_s.chomp('!')}"
                 @log.debug "Running #{command}"
                 begin
                     output = Galaxy::HostUtils.system command

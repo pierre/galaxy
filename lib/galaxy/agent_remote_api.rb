@@ -4,6 +4,8 @@ module Galaxy
         def become! requested_config_path, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy # TODO - make this configurable w/ default
             lock
 
+            current_deployment = current_deployment_number
+
             begin
                 requested_config = Galaxy::SoftwareConfiguration.new_from_config_path(requested_config_path)
 
@@ -11,7 +13,6 @@ module Galaxy
                     current_config = Galaxy::SoftwareConfiguration.new_from_config_path(config.config_path) # TODO - this should already be tracked
                     unless versioning_policy.assignment_allowed?(current_config, requested_config)
                         error_reason = "Versioning policy does not allow this version assignment"
-                        @event_dispatcher.dispatch_become_error_event error_reason
                         raise error_reason
                     end
                 end
@@ -23,19 +24,16 @@ module Galaxy
 
                 if type.nil?
                     error_reason = "Cannot determine binary type for #{requested_config.config_path}"
-                    @event_dispatcher.dispatch_become_error_event error_reason
                     raise error_reason
                 end
 
                 if build.nil?
                     error_reason = "Cannot determine build number for #{requested_config.config_path}"
-                    @event_dispatcher.dispatch_become_error_event error_reason
                     raise error_reason
                 end
 
                 if os and os != @os
                     error_reason = "Cannot assign #{requested_config.config_path} to #{@os} host (requires #{os})"
-                    @event_dispatcher.dispatch_become_error_event error_reason
                     raise error_reason
                 end
 
@@ -45,8 +43,12 @@ module Galaxy
 
                 archive_path = @fetcher.fetch type, build
 
-                new_deployment = current_deployment_number + 1
-                core_base = deployer.deploy(new_deployment, archive_path, requested_config.config_path, @repository_base, @binaries_base)
+                new_deployment = current_deployment + 1
+
+                # Update the slot_info to reflect the new deployment state
+                slot_info.update requested_config.config_path, deployer.core_base_for(new_deployment)
+                core_base = deployer.deploy(new_deployment, archive_path, requested_config.config_path)
+
                 deployer.activate(new_deployment)
                 FileUtils.rm(archive_path) if archive_path && File.exists?(archive_path)
 
@@ -58,13 +60,14 @@ module Galaxy
                 write_config new_deployment, new_deployment_config
                 self.current_deployment_number = new_deployment
 
-                @event_dispatcher.dispatch_become_success_event status
                 announce
                 return status
             rescue Exception => e
+                # Roll slot_info back
+                slot_info.update config.config_path, deployer.core_base_for(current_deployment)
+
                 error_reason = "Unable to become #{requested_config_path}: #{e}"
                 @logger.error error_reason
-                @event_dispatcher.dispatch_become_error_event error_reason
                 raise error_reason
             ensure
                 unlock
@@ -80,7 +83,6 @@ module Galaxy
 
                 if config.config_path.nil? or config.config_path.empty?
                     error_reason = "Cannot update configuration of unassigned host"
-                    @event_dispatcher.dispatch_update_config_error_event error_reason
                     raise error_reason
                 end
 
@@ -90,7 +92,6 @@ module Galaxy
 
                 unless versioning_policy.assignment_allowed?(current_config, requested_config)
                     error_reason = "Versioning policy does not allow this version assignment"
-                    @event_dispatcher.dispatch_update_config_error_event error_reason
                     raise error_reason
                 end
 
@@ -100,36 +101,37 @@ module Galaxy
 
                 if type.nil?
                     error_reason = "Cannot determine binary type for #{requested_config.config_path}"
-                    @event_dispatcher.dispatch_update_config_error_event error_reason
                     raise error_reason
                 end
 
                 if build.nil?
                     error_reason = "Cannot determine build number for #{requested_config.config_path}"
-                    @event_dispatcher.dispatch_update_config_error_event error_reason
                     raise error_reason
                 end
 
                 if config.core_type != type
                     error_reason = "Binary type differs (#{config.core_type} != #{type})"
-                    @event_dispatcher.dispatch_update_config_error_event error_reason
                     raise error_reason
                 end
 
                 if config.build != build
                     error_reason = "Binary build number differs (#{config.build} != #{build})"
-                    @event_dispatcher.dispatch_update_config_error_event error_reason
                     raise error_reason
                 end
 
                 @logger.info "Updating configuration to #{requested_config.config_path}"
 
-                controller = Galaxy::Controller.new config.core_base, config.config_path, @repository_base, @binaries_base, @logger, @machine, @host
+                controller = Galaxy::Controller.new slot_info, config.core_base, @logger
+                current_deployment = current_deployment_number
+
                 begin
+                    slot_info.update requested_config.config_path, deployer.core_base_for(current_deployment)
                     controller.perform! 'update-config', requested_config.config_path
                 rescue Exception => e
+                    # Roll slot_info back
+                    slot_info.update config.config_path, deployer.core_base_for(current_deployment)
+
                     error_reason = "Failed to update configuration for #{requested_config.config_path}: #{e}"
-                    @event_dispatcher.dispatch_update_config_error_event error_reason
                     raise error_reason
                 end
 
@@ -138,15 +140,13 @@ module Galaxy
                                          :core_base => config.core_base,
                                          :config_path => requested_config.config_path)
 
-                write_config(current_deployment_number, @config)
+                write_config(current_deployment, @config)
 
-                @event_dispatcher.dispatch_update_config_success_event status
                 announce
                 return status
             rescue => e
                 error_reason = "Unable to update configuration to version #{requested_version}: #{e}"
                 @logger.error error_reason
-                @event_dispatcher.dispatch_update_config_error_event error_reason
                 raise error_reason
             ensure
                 unlock
@@ -162,17 +162,15 @@ module Galaxy
 
                 if current_deployment_number > 0
                     write_config current_deployment_number, OpenStruct.new()
-                    @core_base = @deployer.rollback current_deployment_number
+                    @core_base = deployer.rollback current_deployment_number
                     self.current_deployment_number = current_deployment_number - 1
                 end
 
-                @event_dispatcher.dispatch_rollback_success_event status
                 announce
                 return status
             rescue => e
                 error_reason = "Unable to rollback: #{e}"
                 @logger.error error_reason
-                @event_dispatcher.dispatch_rollback_error_event error_reason
                 raise error_reason
             ensure
                 unlock
@@ -184,14 +182,12 @@ module Galaxy
             lock
 
             begin
-                @deployer.cleanup_up_to_previous current_deployment_number, @db
-                @event_dispatcher.dispatch_cleanup_success_event status
+                deployer.cleanup_up_to_previous current_deployment_number, @db
                 announce
                 return status
             rescue Exception => e
                 error_reason = "Unable to cleanup: #{e}"
                 @logger.error error_reason
-                @event_dispatcher.dispatch_cleanup_error_event error_reason
                 raise error_reason
             ensure
                 unlock
@@ -210,14 +206,12 @@ module Galaxy
                     @starter.stop! config.core_base
                 end
 
-                @event_dispatcher.dispatch_stop_success_event status
                 announce
                 return status
             rescue Exception => e
                 error_reason = "Unable to stop: #{e}"
                 error_reason += "\n#{e.message}" if e.class == Galaxy::HostUtils::CommandFailedError
                 @logger.error error_reason
-                @event_dispatcher.dispatch_stop_error_event error_reason
                 raise error_reason
             ensure
                 unlock
@@ -237,21 +231,19 @@ module Galaxy
                     @config.last_start_time = time
                 end
 
-                @event_dispatcher.dispatch_start_success_event status
                 announce
                 return status
             rescue Exception => e
                 error_reason = "Unable to start: #{e}"
                 error_reason += "\n#{e.message}" if e.class == Galaxy::HostUtils::CommandFailedError
                 @logger.error error_reason
-                @event_dispatcher.dispatch_start_error_event error_reason
                 raise error_reason
             ensure
                 unlock
             end
         end
 
-        # Retart the currently deployed core
+        # Restart the currently deployed core
         def restart!
             lock
 
@@ -264,14 +256,12 @@ module Galaxy
                     @config.last_start_time = time
                 end
 
-                @event_dispatcher.dispatch_restart_success_event status
                 announce
                 return status
             rescue Exception => e
                 error_reason = "Unable to restart: #{e}"
                 error_reason += "\n#{e.message}" if e.class == Galaxy::HostUtils::CommandFailedError
                 @logger.error error_reason
-                @event_dispatcher.dispatch_restart_error_event error_reason
                 raise error_reason
             ensure
                 unlock
@@ -289,7 +279,6 @@ module Galaxy
                 deployer.deactivate current_deployment_number
                 self.current_deployment_number = current_deployment_number + 1
 
-                @event_dispatcher.dispatch_clear_success_event status
                 announce
                 return status
             ensure
@@ -303,16 +292,14 @@ module Galaxy
 
             begin
                 @logger.info "Performing command #{command} with arguments #{args}"
-                controller = Galaxy::Controller.new config.core_base, config.config_path, @repository_base, @binaries_base, @logger, @machine, @host
+                controller = Galaxy::Controller.new slot_info, config.core_base, @logger
                 output = controller.perform! command, args
 
-                @event_dispatcher.dispatch_perform_success_event status.marshal_dump.merge!({:perform_command => command, :perform_args => args})
                 announce
                 return status, output
             rescue Exception => e
                 error_reason = "Unable to perform command #{command}: #{e}"
                 @logger.error error_reason
-                @event_dispatcher.dispatch_perform_error_event error_reason
                 raise error_reason
             ensure
                 unlock

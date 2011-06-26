@@ -68,15 +68,14 @@ end
 spec = Gem::Specification.new do |s|
   s.name = PACKAGE_NAME
   s.version = GEM_VERSION
-  s.author = "Ning, Inc."
-  s.email = "pierre@ning.com"
-  s.homepage = "http://github.com/ning/galaxy"
+  s.author = "Trumpet Technologies"
+  s.email = "henning@trumpet.io"
+  s.homepage = "http://github.com/henning/galaxy"
   s.platform = Gem::Platform::RUBY
   s.summary = "Galaxy is a lightweight software deployment and management tool."
   s.files =  FileList["lib/galaxy/**/*.rb", "bin/*"]
   s.executables = FileList["galaxy-agent", "galaxy-console", "galaxy"]
   s.require_path = "lib"
-  s.add_dependency("fileutils", ">= 0.7")
   s.add_dependency("json", ">= 1.5.1")
   s.add_dependency("mongrel", ">= 1.1.5")
   s.add_dependency("rcov", ">= 0.9.9")
@@ -103,7 +102,8 @@ namespace :run do
   task :gagent do
     system(RUBY, "-I", File.join(PWD, "lib"),
            File.join(PWD, "bin", "galaxy-agent"), "--start",
-           "-i", "localhost", "-c", "localhost",
+           "-i", "local_test", "-g", "local_group", 
+           "-U", "druby://localhost:4441", "-c", "localhost",
            "-r", "http://localhost/config/trunk/qa",
            "-b", "http://localhost/binaries",
            "-d", "/tmp/deploy", "-x", "/tmp/extract",
@@ -141,25 +141,4 @@ namespace :package do
     FileUtils.rm_rf(rpm_dir)
   end
 
-  desc "Build a Sun package"
-  task :sunpkg => :versioned_gem do
-    build_dir = "#{Dir.tmpdir}/galaxy-package"
-    source_dir = File.dirname(__FILE__)
-
-    FileUtils.rm_rf(build_dir)
-    FileUtils.mkdir_p(build_dir)
-    FileUtils.cp_r("#{source_dir}/build/sun/.", build_dir)
-    FileUtils.cp("#{source_dir}/pkg/#{PACKAGE_NAME}-#{PACKAGE_VERSION}.gem", "#{build_dir}/#{PACKAGE_NAME}.gem")
-    FileUtils.mkdir_p("#{build_dir}/root/lib/svc/method")
-
-    # Expand version tokens
-    `ruby -pi -e "gsub('\#{PACKAGE_VERSION}', '#{PACKAGE_VERSION}'); gsub('\#{GEM_VERSION}', '#{GEM_VERSION}')" #{build_dir}/*`
-
-    # Build the package
-    `cd #{build_dir} && pkgmk -r root -d .` || raise("Failed to create package")
-    `cd #{build_dir} && pkgtrans -s . #{PACKAGE_NAME}.pkg galaxy` || raise("Failed to translate package")
-
-    FileUtils.cp("#{build_dir}/#{PACKAGE_NAME}.pkg", "#{source_dir}/pkg/#{PACKAGE_NAME}-#{PACKAGE_VERSION}.pkg")
-    FileUtils.rm_rf(build_dir)
-  end
 end

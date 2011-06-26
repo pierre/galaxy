@@ -44,18 +44,19 @@ class MockConsole
 end
 
 class MockAgent
-  attr_reader :host, :config_path, :stopped, :started, :restarted
+  attr_reader :agent_id, :agent_group, :config_path, :stopped, :started, :restarted
   attr_reader :gonsole_url, :env, :version, :type, :url, :agent_status, :proxy, :build, :core_type, :machine, :ip
 
-  def initialize host, env = nil, version = nil, type = nil, gonsole_url=nil
-    @host = host
+  def initialize agent_id, agent_group, url, env = nil, version = nil, type = nil, gonsole_url=nil
+    @agent_id = agent_id
+    @agent_group = agent_group
     @env = env
     @version = version
     @type = type
     @gonsole_url = gonsole_url
     @stopped = @started = @restarted = false
 
-    @url = "local://#{host}"
+    @url = url
     Galaxy::Transport.publish @url, self
 
     @config_path = nil
@@ -78,8 +79,8 @@ class MockAgent
 
   def status
     OpenStruct.new(
-          :host => @host,
-          :ip => @ip,
+          :agent_id => @agent_id,
+          :agent_group => @agent_group,
           :url => @drb_url,
           :os => @os,
           :machine => @machine,

@@ -1,24 +1,22 @@
 #!/usr/bin/env ruby
 
-require 'optparse'
-require 'fileutils'
+require 'galaxy/scripts'
 
-OptionParser.new do |opts|
-  opts.on("--base BASE") { |arg| DeployBase = arg }
-  opts.on("--binaries BINARIES") { |arg| BinariesBase = arg }
-  opts.on("--config-path PATH") { |arg| ConfigPath = arg }
-  opts.on("--repository URL") { |arg| Repository = arg }
-end.parse! ARGV
+scripts = Galaxy::ScriptSupport.new ARGV
 
 # for test_xndeploy_invoked_on_deploy
 begin
   dump = {
-    :deploy_base => DeployBase,
-    :config_path => ConfigPath,
-    :repository => Repository,
-    :binaries_base => BinariesBase,
+    :deploy_base =>   scripts.base,
+    :config_path =>   scripts.config_path,
+    :repository =>    scripts.repository,
+    :binaries_base => scripts.binaries,
+    :machine =>       scripts.machine,
+    :agent_id =>      scripts.agent_id,
+    :agent_group =>   scripts.agent_group
   }
-  File.open(File.join(DeployBase, "xndeploy_touched_me"), "w") do |file|
+
+  File.open(File.join(scripts.base, "xndeploy_touched_me"), "w") do |file|
     Marshal.dump(dump, file)
   end
 rescue TypeError

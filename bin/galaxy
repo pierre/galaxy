@@ -18,6 +18,7 @@ require 'galaxy/versioning'
     :console_url => ENV['GALAXY_CONSOLE'],
     :thread_count => 25,
     :versioning_policy => Galaxy::Versioning::StrictVersioningPolicy,
+    :implicit_confirmation => false
     }
 
 @opts = OptionParser.new do |opts|
@@ -39,20 +40,16 @@ require 'galaxy/versioning'
     opts.separator ""
     opts.separator "Filters:"
 
-    opts.on("-i", "--host HOST", "Select a specific agent by hostname") do |arg|
-        @filter[:host] = arg
+    opts.on("-i", "--id IDENTIFIER", "Select a specific agent by identifier") do |agent_id|
+        @filter[:agent_id] = agent_id
     end
 
-    opts.on("-I", "--ip IP", "Select a specific agent by IP address") do |arg|
-        @filter[:ip] = arg
+    opts.on("-g", "--group GROUP", "Select a specific agent by group") do |agent_group|
+        @filter[:agent_group] = agent_group
     end
 
     opts.on("-m", "--machine MACHINE", "Select agents by physical machine") do |arg|
         @filter[:machine] = arg
-    end
-
-    opts.on("-M", "--cohabitants HOST", "Select agents that share a physical machine with the specified host") do |arg|
-        @options[:cohabitant_host] = arg
     end
 
     opts.on("-s", "--set SET", "Select 'e{mpty}', 't{aken}' or 'a{ll}' hosts", [:empty, :all, :taken, :e, :a, :t]) do |arg|
@@ -90,7 +87,7 @@ require 'galaxy/versioning'
 
     opts.separator ""
     opts.separator "Notes:"
-    opts.separator "    - Filters are evaluated as: set | host | (env & version & type)"
+    opts.separator "    - All filters are ANDed."
     opts.separator "    - The HOST, MACHINE, and TYPE arguments are regular expressions (not globs)"
     opts.separator "    - The default filter selects all hosts"
 
@@ -124,34 +121,14 @@ def get_command
         raise CommandLineError.new("Missing command") if command_name.nil?
     end
 
+    abort(usage_message) if command_name == "help"
+
     unless command_name.nil?
         @command_class = Galaxy::Commands[command_name]
         if @command_class.nil?
             raise CommandLineError.new("Unrecognized command: #{command_name}")
         end
         @command = @command_class.new(@args, @options)
-    end
-
-    # If a host is removed from dns, it should then be possible to reap it from the gonsole, without
-    # having to restart the gonsole. Don't bail out if the DNS does not exist anymore.
-    # See GAL-290.
-    begin
-        @filter[:host] = canonical_hostname(@filter[:host]) if @filter[:host]
-    rescue Exception => e
-        raise CommandLineError.new("DNS error: #{e}") unless command_name == "reap"
-        @filter[:host] = @filter[:host]
-    end
-    begin
-        @filter[:machine] = canonical_hostname(@filter[:machine]) if @filter[:machine]
-    rescue Exception => e
-        raise CommandLineError.new("DNS error: #{e}") unless command_name == "reap"
-        @filter[:machine] = @filter[:machine]
-    end
-    begin
-        @options[:cohabitant_host] = canonical_hostname(@options[:cohabitant_host]) if @options[:cohabitant_host]
-    rescue Exception => e
-        raise CommandLineError.new("DNS error: #{e}") unless command_name == "reap"
-        @options[:cohabitant_host] = @options[:cohabitant_host]
     end
 end
 
@@ -163,17 +140,6 @@ def validate_options
     @options[:console_url] = normalize_console_url(console_url)
     @options[:console] = Galaxy::Transport.locate(@options[:console_url])
 
-    if @options[:cohabitant_host]
-        begin
-            agents = @options[:console].agents({:host => @options[:cohabitant_host], :command => @original_args})
-            if agents.length != 1
-                raise "Found #{agents.length} agents matching #{@options[:cohabitant_host]}"
-            end
-            @filter[:machine] = agents[0].machine
-        rescue Exception => e
-            raise "Unable to determine machine for host #{@options[:cohabitant_host]}: #{e}"
-        end
-    end
 end
 
 def usage_message

@@ -1,7 +1,11 @@
 module Galaxy
-    module Commands
-        class ShowCoreCommand < Command
-            register_command "show-core"
+  module Commands
+    class ShowInfoCommand < Command
+      register_command "show-info"
+
+            def report_class
+                Galaxy::Client::CoreSlotInfoReport
+            end
 
             def execute agents
                 report.start
@@ -11,16 +15,11 @@ module Galaxy
                 report.finish
             end
 
-            def report_class
-                Galaxy::Client::CoreStatusReport
-            end
-
             def self.help
                 return <<-HELP
 #{name}
-
-        Show core status (last start time, ...) on the selected hosts
-        See "galaxy show -h" for help and examples on flags usage
+        
+        Shows the slot information on the selected agents.
                 HELP
             end
         end

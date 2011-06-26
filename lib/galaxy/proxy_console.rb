@@ -27,7 +27,7 @@ module Galaxy
             @mutex = Mutex.new
             @conn_failures = 0
 
-            @console_proxyied_url = console_url
+            @console_proxied_url = console_url
             @console_proxied = Galaxy::Transport.locate(console_url)
 
             Thread.new do
@@ -61,7 +61,7 @@ module Galaxy
         def synchronize
             @mutex.synchronize do
                 @db = @console_proxied.db
-                @log.info "Synchronized with master gonsole at #{@console_proxyied_url}"
+                @log.info "Synchronized with master gonsole at #{@console_proxied_url}"
                 @log.debug "Got new db: #{@db}"
             end
         end
@@ -84,10 +84,10 @@ module Galaxy
             drb_url = args[:url] || "druby://" + host # DRB transport
             drb_url += ":4440" unless drb_url.match ":[0-9]+$"
 
-            console_proxyied_url = args[:console_proxyied_url] || "druby://localhost"
-            console_proxyied_url += ":4440" unless console_proxyied_url.match ":[0-9]+$"
+            console_proxied_url = args[:console_proxied_url] || "druby://localhost"
+            console_proxied_url += ":4440" unless console_proxied_url.match ":[0-9]+$"
 
-            console = ProxyConsole.new drb_url, console_proxyied_url,
+            console = ProxyConsole.new drb_url, console_proxied_url,
                                        args[:log] || "STDOUT",
                                        args[:log_level] || Logger::INFO,
                                        args[:ping_interval] || 5

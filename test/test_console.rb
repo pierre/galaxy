@@ -1,6 +1,3 @@
-$:.unshift File.join(File.dirname(__FILE__), "..", "lib")
-$:.unshift File.join(File.dirname(__FILE__))
-
 require 'test/unit'
 require 'galaxy/transport'
 require 'galaxy/config'
@@ -13,36 +10,36 @@ class TestConsole < Test::Unit::TestCase
 
   def setup
     @foo = OpenStruct.new({
-      :host => 'foo',
-      :ip => '10.0.0.1',
+      :agent_id => 'foo',
+      :agent_group => 'group1',
       :machine => 'foomanchu',
       :config_path => '/alpha/1.0/bloo',
       :status => 'running'
     })
 
     @bar = OpenStruct.new({
-      :host => 'bar',
-      :ip => '10.0.0.2',
+      :agent_id => 'bar',
+      :agent_group => 'group2',
       :machine => 'barmanchu',
       :config_path => '/beta/2.0/blar',
       :status => 'stopped'
     })
 
     @baz = OpenStruct.new({
-      :host => 'baz',
-      :ip => '10.0.0.3',
+      :agent_id => 'baz',
+      :agent_group => 'group3',
       :machine => 'bazmanchu',
       :config_path => '/gamma/3.0/blaz',
       :status => 'dead'
     })
 
     @blee = OpenStruct.new({
-      :host => 'blee',
-      :ip => '10.0.0.4',
+      :agent_id => 'blee',
+      :agent_group => 'group4',
       :machine => 'bleemanchu'
     })
 
-    @console = Galaxy::Console.start({:host => "localhost", :url => "druby://localhost:4449"})
+    @console = Galaxy::Console.start({:agent_id => "localhost", :url => "druby://localhost:4449"})
   end
 
   def teardown
@@ -50,12 +47,12 @@ class TestConsole < Test::Unit::TestCase
   end
 
   def test_updates_last_announced_on_announce
-    assert_nil @console.db["foo"]
+    assert_nil @console.db["foo/group1"]
 
     @console.send("announce", @foo)
-    first = @console.db["foo"].timestamp
+    first = @console.db["foo/group1"].timestamp
     @console.send("announce", @foo)
-    second = @console.db["foo"].timestamp
+    second = @console.db["foo/group1"].timestamp
 
     assert second > first
   end

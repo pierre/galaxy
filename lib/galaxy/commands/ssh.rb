@@ -6,7 +6,7 @@ module Galaxy
             def execute agents
                 agent = agents.first
                 command = ENV['GALAXY_SSH_COMMAND'] || "ssh"
-                Kernel.system "#{command} #{agent.host}" if agent
+                Kernel.system "#{command} #{agent.machine}" if agent
             end
 
             def self.help

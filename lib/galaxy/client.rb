@@ -29,10 +29,3 @@ def normalize_console_url console_url
     console_url ="#{console_url}:4440" unless console_url.match(/:\d+$/)
     console_url
 end
-
-# Expand short hostnames to their fully-qualified names
-#
-# This implementation depends on the client and agents sharing a common naming service (hosts files, NIS, DNS, etc).
-def canonical_hostname hostname
-    Resolv.getname(Resolv.getaddress(hostname))
-end

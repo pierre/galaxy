@@ -1,14 +1,14 @@
 require 'logger'
+require 'yaml'
+
+require 'galaxy/slotinfo'
 
 module Galaxy
     class Controller
-        def initialize core_base, config_path, repository_base, binaries_base, log, machine, host
+        def initialize slot_info, core_base, log
+            @slot_info = slot_info
             @core_base = core_base
-            @config_path = config_path
-            @repository_base = repository_base
-            @binaries_base = binaries_base
-            @machine = machine
-            @host = host
+            @log = log
 
             script = File.join(@core_base, "bin", "control")
             if File.exists? script
@@ -16,14 +16,14 @@ module Galaxy
             else
                 raise ControllerNotFoundException.new
             end
-            @log = log
         end
 
         def perform! command, args = ''
-            @log.info "Invoking control script: #{@script} #{command} #{args}"
+            exec_script="#{@script} --slot-info #{@slot_info.get_file_name} #{command} #{args}"
+            @log.info "Invoking control script: #{exec_script}"
 
             begin
-                output = `#{@script} --base #{@core_base} --binaries #{@binaries_base} --config-path #{@config_path} --repository #{@repository_base} --machine #{@machine} --host #{@host} #{command} #{args} 2>&1`
+                output = `#{exec_script} 2>&1`
             rescue Exception => e
                 raise ControllerFailureException.new(command, e)
             end

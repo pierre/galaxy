@@ -6,6 +6,8 @@ module Galaxy
             case args[:set]
                 when :all, "all"
                     filters << lambda { true }
+              when :none, "none"
+                  filters << lambda { false }
                 when :empty, "empty"
                     filters << lambda { |a| a.config_path.nil? }
                 when :taken, "taken"
@@ -20,12 +22,12 @@ module Galaxy
                 filters << lambda { |a| a.config_path =~ %r!^/#{env}/#{version}/#{type}$! }
             end
 
-            if args[:host]
-                filters << lambda { |a| a.host == args[:host] }
+            if args[:agent_id]
+                filters << lambda { |a| a.agent_id == args[:agent_id] }
             end
 
-            if args[:ip]
-                filters << lambda { |a| a.ip == args[:ip] }
+            if args[:agent_group]
+                filters << lambda { |a| a.agent_group == args[:agent_group] }
             end
 
             if args[:machine]
@@ -37,12 +39,11 @@ module Galaxy
             end
 
             if args[:agent_state]
-                p args[:agent_state]
-                filters << lambda { |a| p a.agent_status; a.agent_status == args[:agent_state] }
+                filters << lambda { |a| a.agent_status == args[:agent_state] }
             end
 
             lambda do |a|
-                filters.inject(false) { |result, filter| result || filter.call(a) }
+                filters.inject(true) { |result, filter| result && filter.call(a) }
             end
         end
     end
