@@ -17,12 +17,17 @@ module Galaxy
 
       @rest = OptionParser.new do |opts|
         opts.on("--slot-info SLOT_INFO") { |arg| @slot_info = arg }
+        opts.on("--base DEPLOY_PATH") { |arg| deploy_path = arg }
+        opts.on("--binaries BINARIES_PATH") { |arg| binaries_path = arg }
+        opts.on("--config-path CONFIG_PATH") { |arg| config_path = arg }
         yield opts if block_given?
       end.parse! args
 
-      raise "No slot info file given" if @slot_info.nil?
-
-      @slot_data = load_slot_info
+      if @slot_info.nil?
+        @slot_data = OpenStruct.new(:base => deploy_path, :binaries => binaries_path, :repository => config_path)
+      else
+        @slot_data = load_slot_info
+      end
 
       @base = @slot_data.base
       @config_path = @slot_data.config_path

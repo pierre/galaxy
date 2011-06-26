@@ -42,7 +42,8 @@ module Galaxy
                 xndeploy = "/bin/sh #{xndeploy}"
             end
 
-            command = "#{xndeploy} --slot-info #{@slot_info.get_file_name}"
+            command = "#{xndeploy} --slot-info #{@slot_info.get_file_name} --base #{core_base} --binaries #{@binaries_base} --config-path #{config_path} --repository #{repository_base}"
+
             begin
                 Galaxy::HostUtils.system command
             rescue Galaxy::HostUtils::CommandFailedError => e

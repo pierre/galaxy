@@ -1,0 +1,8 @@
+3.3.0
+=====
+
+* no more event code
+* agents are managed by id, not hostname
+* launcher runs `launcher --slot-info... start/stop/status` (add slot-info)
+* deployer runs `xndeploy --slot-info... --base... --binaries... --config-path... --repository...` (add slot-info)
+
