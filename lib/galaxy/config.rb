@@ -10,7 +10,7 @@ module Galaxy
         DEFAULT_LOG_LEVEL = ENV["GALAXY_LOG_LEVEL"] || "INFO"
         DEFAULT_MACHINE_FILE = ENV["GALAXY_MACHINE_FILE"] || ""
         DEFAULT_AGENT_PID_FILE = ENV["GALAXY_AGENT_PID_FILE"] || "/tmp/galaxy-agent.pid"
-        DEFAULT_CONSOLE_PID_FILE = ENV["GALAXY_CONSOLE_PID_FILE"] || "/tmp/galaxy-agent.pid"
+        DEFAULT_CONSOLE_PID_FILE = ENV["GALAXY_CONSOLE_PID_FILE"] || "/tmp/galaxy-console.pid"
 
         DEFAULT_PING_INTERVAL = 60
 

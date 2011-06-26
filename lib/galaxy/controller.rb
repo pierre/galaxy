@@ -2,11 +2,14 @@ require 'logger'
 
 module Galaxy
     class Controller
-        def initialize core_base, config_path, repository_base, binaries_base, log
+        def initialize core_base, config_path, repository_base, binaries_base, log, machine, host
             @core_base = core_base
             @config_path = config_path
             @repository_base = repository_base
             @binaries_base = binaries_base
+            @machine = machine
+            @host = host
+
             script = File.join(@core_base, "bin", "control")
             if File.exists? script
                 @script = File.executable?(script) ? script : "/bin/sh #{script}"
@@ -20,7 +23,7 @@ module Galaxy
             @log.info "Invoking control script: #{@script} #{command} #{args}"
 
             begin
-                output = `#{@script} --base #{@core_base} --binaries #{@binaries_base} --config-path #{@config_path} --repository #{@repository_base} #{command} #{args} 2>&1`
+                output = `#{@script} --base #{@core_base} --binaries #{@binaries_base} --config-path #{@config_path} --repository #{@repository_base} --machine #{@machine} --host #{@host} #{command} #{args} 2>&1`
             rescue Exception => e
                 raise ControllerFailureException.new(command, e)
             end
