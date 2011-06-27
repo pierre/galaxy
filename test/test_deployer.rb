@@ -11,12 +11,8 @@ class TestDeployer < Test::Unit::TestCase
   def setup
     @core_package = Tempfile.new("package.tgz").path
     @bad_core_package = Tempfile.new("bad-package.tgz").path
-    system %{
-      #{Galaxy::HostUtils.tar} -C #{File.join(File.dirname(__FILE__), "core_package")} -czf #{@core_package} . 
-    }
-    system %{
-      #{Galaxy::HostUtils.tar} -C #{File.join(File.dirname(__FILE__), "bad_core_package")} -czf #{@bad_core_package} . 
-    }
+    system "#{Galaxy::HostUtils.tar} -C #{File.dirname(__FILE__)} -czf #{@core_package} core_package"
+    system "#{Galaxy::HostUtils.tar} -C #{File.dirname(__FILE__)} -czf #{@bad_core_package} bad_core_package"
     @path = Helper.mk_tmpdir
     @db = Galaxy::DB.new @path
     log = Logger.new("/dev/null")

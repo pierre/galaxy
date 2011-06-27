@@ -25,18 +25,35 @@ module Galaxy
         # archive is the path to the binary archive to deploy
         # props are the properties (configuration) for the core
         def deploy number, archive, config_path
-            core_base = core_base_for(number)
-            FileUtils.mkdir_p core_base
+            # assure base dir exists
+            FileUtils.mkdir_p @base
 
+            # core_base it the ultimate target directory
+            core_base = File.join(@base, number.to_s)
             log.info "deploying #{archive} to #{core_base} with config path #{config_path}"
 
-            command = "#{Galaxy::HostUtils.tar} -C #{core_base} -zxf #{archive}"
-            begin
-                Galaxy::HostUtils.system command
-            rescue Galaxy::HostUtils::CommandFailedError => e
-                raise "Unable to extract archive: #{e.message}"
-            end
+            # create a temp dir for unpacking work
+            Dir.mktmpdir(['galaxy', "tmp"], @base) { |tmp|
+                # Unpack the archive
+                command = "#{Galaxy::HostUtils.tar} -C #{tmp} -zxf #{archive}"
+                begin
+                    Galaxy::HostUtils.system command
+                rescue Galaxy::HostUtils::CommandFailedError => e
+                    raise "Unable to extract archive: #{e.message}"
+                end
 
+                # find the directory unpacked from the tar.gz file
+                files = Dir.glob(File.join(tmp, '*'))
+                if files.length != 1 || !File::directory?(files[0])
+                  raise "Invalid tar file: file does not have a root directory #{archive}"
+                end
+
+                # move the unpacked directory to core_base
+                dir = files[0]
+                FileUtils.mv(dir, core_base)
+            }
+
+            # exec xndeploy
             xndeploy = "#{core_base}/bin/xndeploy"
             unless FileTest.executable? xndeploy
                 xndeploy = "/bin/sh #{xndeploy}"
@@ -49,6 +66,7 @@ module Galaxy
             rescue Galaxy::HostUtils::CommandFailedError => e
                 raise "Deploy script failed: #{e.message}"
             end
+
             return core_base
         end
 
