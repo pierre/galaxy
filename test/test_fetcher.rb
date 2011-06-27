@@ -8,6 +8,16 @@ include WEBrick
 
 class TestFetcher < Test::Unit::TestCase
 
+  class FetchObj
+    attr_reader :group, :artifact, :version;
+
+    def initialize group, artifact, version
+      @group = group
+      @artifact = artifact
+      @version = version
+    end
+  end
+
   def setup
     @local_fetcher = Galaxy::Fetcher.new(File.join(File.dirname(__FILE__), "property_data"), nil, nil, Logger.new("/dev/null"))
     @http_fetcher = Galaxy::Fetcher.new("http://localhost:7777", nil, nil, Logger.new("/dev/null"))
@@ -26,21 +36,40 @@ class TestFetcher < Test::Unit::TestCase
   end
     
   def test_local_fetch
-    path = @local_fetcher.fetch "foo", "bar", "properties"
+    obj = FetchObj.new nil, "foo", "bar"
+    path = @local_fetcher.fetch obj, "properties"
     assert File.exists?(path)
   end
   
   def test_http_fetch
-    path = @http_fetcher.fetch "foo", "bar", "properties"
+
+    obj = FetchObj.new nil, "foo", "bar"
+    path = @http_fetcher.fetch obj, "properties"
     assert File.exists?(path)
   end
 
   def test_http_fetch_not_found
     assert_raise RuntimeError do
       @server.logger.level = Logger::FATAL
-      path = @http_fetcher.fetch "gorple", "fez", "properties"
+      obj = FetchObj.new nil, "gorple", "fez"
+      path = @http_fetcher.fetch obj, "properties"
       @server.logger.level = Logger::WARN
     end
   end
 
+  def test_http_group_fetch
+
+     obj = FetchObj.new "some.domain", "foo", "bar"
+     path = @http_fetcher.fetch obj, "properties"
+     assert File.exists?(path)
+   end
+
+   def test_http_group_fetch_not_found
+     assert_raise RuntimeError do
+       @server.logger.level = Logger::FATAL
+       obj = FetchObj.new "some.domain", "gorple", "fez"
+       path = @http_fetcher.fetch obj, "properties"
+       @server.logger.level = Logger::WARN
+     end
+   end
 end

@@ -46,6 +46,7 @@ end
 class MockAgent
   attr_reader :agent_id, :agent_group, :config_path, :stopped, :started, :restarted
   attr_reader :gonsole_url, :env, :version, :type, :url, :agent_status, :proxy, :build, :core_type, :machine, :ip
+  attr_reader :build_version
 
   def initialize agent_id, agent_group, url, env = nil, version = nil, type = nil, gonsole_url=nil
     @agent_id = agent_id
@@ -71,6 +72,7 @@ class MockAgent
     @drb_url = nil
     @os = nil
     @machine = nil
+    @build_version = nil
   end
 
   def shutdown
@@ -108,7 +110,7 @@ class MockAgent
     status
   end
 
-  def become! path, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy
+  def become! req_build_version, path, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy
     md = %r!^/([^/]+)/([^/]+)/(.*)$!.match path
     new_env, new_version, new_type = md[1], md[2], md[3]
     # XXX We don't test the versioning code - but it should go away soon
@@ -117,6 +119,7 @@ class MockAgent
     @version = new_version
     @type = new_type
     @config_path = "/#{@env}/#{@version}/#{@type}"
+    @build_version = req_build_version
     status
   end
 

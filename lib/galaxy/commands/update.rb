@@ -11,6 +11,7 @@ module Galaxy
                 @requested_version = args.first
                 raise CommandLineError.new("Must specify version") unless @requested_version
                 @versioning_policy = options[:versioning_policy]
+                @build_version = options[:build_version]
             end
 
             def normalize_filter filter
@@ -26,7 +27,7 @@ module Galaxy
                 current_config = Galaxy::SoftwareConfiguration.new_from_config_path(agent.config_path) # TODO - this should already be tracked
                 requested_config = current_config.dup
                 requested_config.version = @requested_version
-                agent.proxy.become!(requested_config.config_path, @versioning_policy)
+                agent.proxy.become!(@build_version, requested_config.config_path, @versioning_policy)
             end
 
             def self.help
