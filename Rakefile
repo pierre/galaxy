@@ -5,7 +5,7 @@ require 'rake'
 require 'rake/testtask'
 require 'rake/clean'
 require 'rake/gempackagetask'
-require 'lib/galaxy/version'
+require './lib/galaxy/version'
 begin
     require 'rcov/rcovtask'
     $RCOV_LOADED = true
