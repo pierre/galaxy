@@ -88,25 +88,3 @@ module Galaxy
         end
     end
 end
-
-if __FILE__ == $0
-    def a
-        b
-    end
-
-    def b
-        raise "error"
-    end
-
-    require 'logger'
-
-    log = Logger.new(STDERR)
-    info = Galaxy::Log::LoggerIO.new log, :info
-    warn = Galaxy::Log::LoggerIO.new log, :error
-    $stdout = info
-    $stderr = warn
-
-    puts "hello world\nbye bye"
-
-    a
-end

@@ -70,7 +70,8 @@ class TestClient < Test::Unit::TestCase
   def test_show_with_one_agent
     console = Galaxy::Console.start({ :host => 'localhost', :log_level => Logger::WARN })
     begin
-      agent = Galaxy::Agent.start({ :url => 'druby://localhost:4440', :agent_id => "test_agent", :agent_group => "test_group", :console => 'localhost', :log_level => Logger::WARN })
+      test_options = Galaxy::Agent::Configuration.new({ :url => 'druby://localhost:4440', :agent_id => "test_agent", :agent_group => "test_group", :console => 'localhost', :log_level => "WARN" }).options
+      agent = Galaxy::Agent.start(test_options)
       begin
         output = `#{@galaxy} -c localhost show -i localhost 2>&1`.split("\n")
         assert_equal(1, output.length)
