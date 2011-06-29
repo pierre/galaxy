@@ -35,7 +35,7 @@ require 'galaxy/versioning'
         puts "Galaxy version #{Galaxy::Version}"
         @options[:version_requested] = true
     end
-    opts.on("-b", "--build-version VERSION", "Specify the version of the build to install as [groupId:]serverType:version") { @options[:build_version] == arg.to_s }
+    opts.on("-b", "--build-version VERSION", "Specify the version of the build to install as [groupId:]serverType:version") { |arg| @options[:build_version] == arg.to_s }
     opts.on("-y", "--yes", "Avoid confirmation prompts by automatically confirming all actions") { @options[:implicit_confirmation] = true }
 
     opts.separator ""
