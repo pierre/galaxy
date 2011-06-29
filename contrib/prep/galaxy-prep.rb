@@ -1,8 +1,21 @@
 #! /usr/bin/ruby
+#
+# Writes a set of configuration files and scripts to create a local galaxy installation.
+#
 
 require 'yaml'
 require 'fileutils'
 require 'erb'
+
+# Maximum number of agents that can be created
+max_agent_count = 20
+
+# Number of private ports associated with each slot
+private_ports_per_slot = 5
+
+# Total number of global ports associated
+num_global_ports = 5
+
 
 class ResourceController
     def initialize start, amount
@@ -32,6 +45,10 @@ end
 
 ARGV.length == 1 || raise("Usage: #{$0} <config file>")
 
+#
+# Load configuration, validate it
+#
+
 @config = YAML.load_file(ARGV[0])
 
 @agent_template = nil
@@ -49,63 +66,107 @@ File.open("script.erb") { |file|
   @script_template = ERB.new file.read
 }
 
+@user = @config['user'] || ENV['USER']
 
-@rc_agent_port = ResourceController.new 5400, 100
-@rc_http_port = ResourceController.new 18080, 100
-@rc_https_port = ResourceController.new 18443, 100
-@rc_jmx_port = ResourceController.new 22345, 100
-@rc_tomcat_ports = ResourceController.new 18200, 100
-@rc_global_ports = ResourceController.new 20000, 10
-@rc_private_ports = ResourceController.new 21000, 1000
+if @user.nil?
+  raise("Could not determine the galaxy user")
+end
 
+@slots = @config['slots'].split(',')
+
+if @slots.empty?
+    raise("No slots given, bailing out!")
+end
+
+if @slots.length > max_agent_count
+  raise("More than #{max_agent_count} slots defined, check the resource allocation first!")
+end
 
 @base = @config['base']
+
+if @base.nil?
+  raise("No base directory given!")
+end
+
+@hostname = @config['hostname']
+
+if @hostname.nil?
+  raise("No hostname given!")
+end
+
+@internal_ip = @config['internal-ip']
+
+if @internal_ip.nil?
+  raise("No internal ip given!")
+end
+
+#
+# derived configuration
+#
+
 @config_dir = File.join(@base, "config")
 @deploy_dir = File.join(@base, "deploy")
+@host_prefix = @hostname.split('.')[0]
+@external_ip = @config['external-ip'] || @internal_ip
 
+internal_matches_external = @internal_ip == @external_ip
+
+#
+# Resource management agents.
+#
+# rc_agent_port    - ports used by the galaxy agents.
+# rc_http_port     - http ports associated with a slot.
+# rc_https_port    - https ports associated with a slot.
+# rc_jmx_port      - jmx ports associated with a slot.
+# rc_tomcat_port   - tomcat port associated with a slot.
+# rc_private_ports - slot specific ports (every slot gets a couple).
+# rc_global_ports  - https ports associated with a slot.
+#
+# TODO:
+# - get rid of the tomcat_port, which is specific to an use case. Allow extension of the script to cater to these needs.
+# - add a global resource allocator to avoid double assignment of a port in different resource controllers.
+
+@rc_agent_port = ResourceController.new 5400, max_agent_count
+@rc_http_port = ResourceController.new 18080, max_agent_count
+@rc_https_port = ResourceController.new 18443, max_agent_count
+@rc_jmx_port = ResourceController.new 22345, max_agent_count
+@rc_tomcat_port = ResourceController.new 18200, max_agent_count
+@rc_private_ports = ResourceController.new 21000, max_agent_count*private_ports_per_slot
+@rc_global_ports = ResourceController.new 20000, num_global_ports
+
+#
+# Create galaxy base folders
+#
 create_dir @base
 create_dir @config_dir
 create_dir @deploy_dir
 
 puts "Created #{@base} as galaxy base directory."
 
-@slots = @config['slots'].split(',')
-@hostname = @config['hostname']
-@host_prefix = @hostname.split('.')[0]
-
-if @slots.empty?
-    raise("No slots given, bailing out!")
-end
+# Allocate global ports
 
 global_ports = []
-(0..4).entries.each { |x| global_ports[x] = @rc_global_ports.get }
+(0...num_global_ports).entries.each { |x| global_ports[x] = @rc_global_ports.get }
 
-internal_matches_external = @config['external-ip'].nil? || (@config['internal-ip'] == @config['external-ip'])
+# prep each agent slot
 
 @slots.each do |@slot|
     http_port = @rc_http_port.get
     https_port = @rc_https_port.get
 
     slot_info = {
-        "internal_ip" => @config['internal-ip'],
-        "external_ip" => internal_matches_external ? @config['internal-ip'] : @config['external-ip'],
+        "internal_ip" => @internal_ip,
+        "external_ip" => internal_matches_external ? @internal_ip : @external_ip,
         "private_port_jmx" => @rc_jmx_port.get,
-        "private_port_0" => @rc_private_ports.get,
-        "private_port_1" => @rc_private_ports.get,
-        "private_port_2" => @rc_private_ports.get,
-        "private_port_3" => @rc_private_ports.get,
-        "private_port_4" => @rc_private_ports.get,
-        "global_port_0" => global_ports[0],
-        "global_port_1" => global_ports[1],
-        "global_port_2" => global_ports[2],
-        "global_port_3" => global_ports[3],
-        "global_port_4" => global_ports[4],
-        "private_port_tomcat" => @rc_tomcat_ports.get,
+        "private_port_tomcat" => @rc_tomcat_port.get,
         "internal_http" => http_port,
         "internal_https" => https_port,
         "external_http" => internal_matches_external ? @rc_http_port.get : http_port,
         "external_https" => internal_matches_external ? @rc_https_port.get : https_port
     }
+
+    (0...global_ports.length).each { |x| slot_info["global_port_#{x}"] = global_ports[x] }
+    (0...private_ports_per_slot).each { |x| slot_info["private_port_#{x}"] = @rc_private_ports.get }
 
     File.open(File.join(@config_dir, "slotinfo-#{@slot}"), "w") { |file|
         file.write(YAML.dump(slot_info))
@@ -120,9 +181,13 @@ internal_matches_external = @config['external-ip'].nil? || (@config['internal-ip
     puts "Agent #{@slot} complete"
 end
 
+# write main configuration
+
 File.open(File.join(@config_dir, "galaxy.conf"), "w") { |file|
     file.write @config_template.result
 }
+
+# write start and stop scripts.
 
 start_file=File.join(@base, "start_galaxy.sh")
 @mode="-s"

@@ -12,8 +12,4 @@ galaxy.console.log:              SYSLOG
 galaxy.console.log-level:        INFO
 galaxy.console.pid-file:         <%= @base %>/console.pid
 galaxy.console.announcement-url: http://<%= @hostname %>:4442
-
-#
-# Modify the following settings!
-# 
-galaxy.console.user:             galaxy
+galaxy.console.user:             <%= @user %>
