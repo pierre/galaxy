@@ -1,0 +1,8 @@
+#! /bin/sh
+export GALAXY_CONFIG=<%= @config_dir %>/galaxy.conf
+<% @slots.each { |slot| %>
+galaxy-agent -C <%= @config_dir %>/agent-<%= slot %>.conf <%= @mode %><% } %>
+
+galaxy-console -C $GALAXY_CONFIG <%= @mode %>
+
+echo "export GALAXY_CONFIG=$GALAXY_CONFIG"

@@ -1,0 +1,23 @@
+#
+# Configuration for Agent <%= @slot %>
+#
+galaxy.agent.console:            http://<%= @config['hostname'] %>:4442
+galaxy.agent.agent_url:          druby://<%= @config['hostname'] %>:<%= @rc_agent_port.get %>
+galaxy.agent.agent_group:        development
+galaxy.agent.agent_id:           <%= @host_prefix %>-<%= @slot %>
+galaxy.agent.machine:            <%= @config['hostname'] %>
+galaxy.agent.slot_environment:   <%= @config_dir %>/slotinfo-<%= @slot %>
+galaxy.agent.deploy-dir:         <%= @deploy_dir %>/<%= @slot %>
+galaxy.agent.data-dir:           <%= @config_dir %>/data-<%= @slot %>
+galaxy.agent.log:                SYSLOG
+galaxy.agent.log-level:          INFO
+galaxy.agent.pid-file:           <%= @base %>/agent-<%= @slot %>.pid
+galaxy.agent.announce-interval:  15
+#
+# Modify the following settings!
+# 
+galaxy.agent.http_user:          config-user
+galaxy.agent.http_password:      config-password
+galaxy.agent.user:               galaxy
+galaxy.agent.config-root:        http://some.server/config
+galaxy.agent.binaries-root:      http://some.server/binaries
