@@ -102,7 +102,7 @@ module Galaxy
 
                 @config = OpenStruct.new(:core_type => config.core_type,
                                          :core_group => config.core_group,
-                                         :build => build,
+                                         :build => config.build,
                                          :core_base => config.core_base,
                                          :config_path => requested_config.config_path)
 
