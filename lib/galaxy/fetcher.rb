@@ -8,17 +8,21 @@ module Galaxy
         end
 
         # return path on filesystem to the binary
-        def fetch build, extension="tar.gz"
+        def fetch build, build_uri=nil, extension="tar.gz"
 
-            core_url="#{@base}/#{build.artifact}-#{build.version}.#{extension}"
+            core_url = build_uri || @base
+
             if !build.group.nil?
               group_path=build.group.gsub /\./, '/'
-              core_url="#{@base}/#{group_path}/#{build.artifact}-#{build.version}.#{extension}"
+              # Maven repo compatible
+              core_url = "#{core_url}/#{group_path}/#{build.artifact}/#{build.version}"
             end
+
+            core_url="#{core_url}/#{build.artifact}-#{build.version}.#{extension}"
 
             tmp = Galaxy::Temp.mk_auto_file "galaxy-download"
             @log.info("Fetching #{core_url} into #{tmp}")
-            if @base =~ /^https?:/
+            if core_url =~ /^https?:/
                 begin
                     curl_command = "curl -D - #{core_url} -o #{tmp} -s"
                     if !@http_user.nil? && !@http_password.nil?
