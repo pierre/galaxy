@@ -17,6 +17,9 @@ module Galaxy
 
                 @config_path = "/#{env}/#{version}/#{type}"
                 @versioning_policy = options[:versioning_policy]
+                @build_version = options[:build_version]
+                @config_uri = @options[:config_uri]
+                @binaries_uri = @options[:binaries_uri]
             end
 
             def default_filter
@@ -24,7 +27,7 @@ module Galaxy
             end
 
             def execute_for_agent agent
-                agent.proxy.become!(@config_path, @versioning_policy)
+                agent.proxy.become!(@build_version, @config_path, @config_uri, @binaries_uri, @versioning_policy)
             end
 
             def self.help

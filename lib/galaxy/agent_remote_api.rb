@@ -1,7 +1,7 @@
 module Galaxy
     module AgentRemoteApi
         # Command to become a specific core
-        def become! requested_config_path, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy # TODO - make this configurable w/ default
+        def become! req_build_version, requested_config_path, config_uri=nil, binaries_uri=nil, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy # TODO - make this configurable w/ default
             lock
 
             current_deployment = current_deployment_number
@@ -17,43 +17,31 @@ module Galaxy
                     end
                 end
 
-                build_properties = @prop_builder.build(requested_config.config_path, "build.properties")
-                type = build_properties['type']
-                build = build_properties['build']
-                os = build_properties['os']
+                build_version = Galaxy::BuildVersion.new_from_options req_build_version
 
-                if type.nil?
-                    error_reason = "Cannot determine binary type for #{requested_config.config_path}"
-                    raise error_reason
+                if build_version.nil?
+                  build_version = Galaxy::BuildProperties.new_from_config(@logger, @prop_builder, requested_config)
+                  build_version.validate_os(@os)
                 end
 
-                if build.nil?
-                    error_reason = "Cannot determine build number for #{requested_config.config_path}"
-                    raise error_reason
-                end
-
-                if os and os != @os
-                    error_reason = "Cannot assign #{requested_config.config_path} to #{@os} host (requires #{os})"
-                    raise error_reason
-                end
-
-                @logger.info "Becoming #{type}-#{build} with #{requested_config.config_path}"
+                @logger.info "Becoming #{build_version.group || ''}:#{build_version.artifact}:#{build_version.version} with #{requested_config.config_path}"
 
                 stop!
 
-                archive_path = @fetcher.fetch type, build
+                archive_path = @fetcher.fetch build_version, binaries_uri
 
                 new_deployment = current_deployment + 1
 
                 # Update the slot_info to reflect the new deployment state
-                slot_info.update requested_config.config_path, deployer.core_base_for(new_deployment)
+                slot_info.update requested_config.config_path, deployer.core_base_for(new_deployment), config_uri, binaries_uri
                 core_base = deployer.deploy(new_deployment, archive_path, requested_config.config_path)
 
                 deployer.activate(new_deployment)
                 FileUtils.rm(archive_path) if archive_path && File.exists?(archive_path)
 
-                new_deployment_config = OpenStruct.new(:core_type => type,
-                                                       :build => build,
+                new_deployment_config = OpenStruct.new(:core_type => build_version.artifact,
+                                                       :core_group => build_version.group,
+                                                       :build => build_version.version,
                                                        :core_base => core_base,
                                                        :config_path => requested_config.config_path,
                                                        :auto_start => true)
@@ -64,7 +52,7 @@ module Galaxy
                 return status
             rescue Exception => e
                 # Roll slot_info back
-                slot_info.update config.config_path, deployer.core_base_for(current_deployment)
+                slot_info.update config.config_path, deployer.core_base_for(current_deployment), config_uri, binaries_uri
 
                 error_reason = "Unable to become #{requested_config_path}: #{e}"
                 @logger.error error_reason
@@ -75,7 +63,7 @@ module Galaxy
         end
 
         # Invoked by 'galaxy update-config <version>'
-        def update_config! requested_version, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy # TODO - make this configurable w/ default
+        def update_config! requested_version, config_uri=nil, binaries_uri=nil, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy # TODO - make this configurable w/ default
             lock
 
             begin
@@ -86,36 +74,13 @@ module Galaxy
                     raise error_reason
                 end
 
-                current_config = Galaxy::SoftwareConfiguration.new_from_config_path(config.config_path) # TODO - this should already be tracked
+                current_config = Galaxy::SoftwareConfiguration.new_from_config_path(config.config_path)
+
                 requested_config = current_config.dup
                 requested_config.version = requested_version
 
                 unless versioning_policy.assignment_allowed?(current_config, requested_config)
                     error_reason = "Versioning policy does not allow this version assignment"
-                    raise error_reason
-                end
-
-                build_properties = @prop_builder.build(requested_config.config_path, "build.properties")
-                type = build_properties['type']
-                build = build_properties['build']
-
-                if type.nil?
-                    error_reason = "Cannot determine binary type for #{requested_config.config_path}"
-                    raise error_reason
-                end
-
-                if build.nil?
-                    error_reason = "Cannot determine build number for #{requested_config.config_path}"
-                    raise error_reason
-                end
-
-                if config.core_type != type
-                    error_reason = "Binary type differs (#{config.core_type} != #{type})"
-                    raise error_reason
-                end
-
-                if config.build != build
-                    error_reason = "Binary build number differs (#{config.build} != #{build})"
                     raise error_reason
                 end
 
@@ -125,18 +90,19 @@ module Galaxy
                 current_deployment = current_deployment_number
 
                 begin
-                    slot_info.update requested_config.config_path, deployer.core_base_for(current_deployment)
+                    slot_info.update requested_config.config_path, deployer.core_base_for(current_deployment), config_uri, binaries_uri
                     controller.perform! 'update-config', requested_config.config_path
                 rescue Exception => e
                     # Roll slot_info back
-                    slot_info.update config.config_path, deployer.core_base_for(current_deployment)
+                    slot_info.update config.config_path, deployer.core_base_for(current_deployment), config_uri, binaries_uri
 
                     error_reason = "Failed to update configuration for #{requested_config.config_path}: #{e}"
                     raise error_reason
                 end
 
-                @config = OpenStruct.new(:core_type => type,
-                                         :build => build,
+                @config = OpenStruct.new(:core_type => config.core_type,
+                                         :core_group => config.core_group,
+                                         :build => config.build,
                                          :core_base => config.core_base,
                                          :config_path => requested_config.config_path)
 

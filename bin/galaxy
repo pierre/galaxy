@@ -35,7 +35,10 @@ require 'galaxy/versioning'
         puts "Galaxy version #{Galaxy::Version}"
         @options[:version_requested] = true
     end
+    opts.on("-b", "--build-version VERSION", "Specify the version of the build to install as [groupId:]serverType:version") { |arg| @options[:build_version] = arg.to_s }
     opts.on("-y", "--yes", "Avoid confirmation prompts by automatically confirming all actions") { @options[:implicit_confirmation] = true }
+    opts.on("-z", "--config-uri URI", "The base configuration URI to load config") {|arg| @options[:config_uri] = arg.to_s}
+    opts.on("-Z", "--binaries-uri URI", "The base binaries URI to load binaries") {|arg| @options[:binaries_uri] = arg.to_s}
 
     opts.separator ""
     opts.separator "Filters:"
@@ -173,7 +176,7 @@ def validate_agents
     # If command is show-console, it's okay not to have found any agent
     if @agents.length == 0 and @command.class.name != "show-console"
         abort("No agents matching the provided filter(s) were available for #{@command.class.name}")
-    elsif @agents.length > 1 and (@command.changes_agent_state or @command.changes_console_state) and not@options[:implicit_confirmation]
+    elsif @agents.length > 1 and (@command.changes_agent_state or @command.changes_console_state) and not @options[:implicit_confirmation]
         abort unless prompt_and_wait_for_user_confirmation("#{@agents.length} agents will be affected; continue? (y/n) ")
     end
     locate_agent_proxies # AgentProxy should provide this instead of having to instantiate it here

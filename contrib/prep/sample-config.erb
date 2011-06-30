@@ -1,0 +1,15 @@
+#
+# Command line
+#
+galaxy.client.console:           druby://<%= @hostname %>:4440
+
+#
+# Console
+#
+galaxy.console.host:             <%= @hostname %>
+galaxy.console.ping-interval:    60
+galaxy.console.log:              SYSLOG
+galaxy.console.log-level:        INFO
+galaxy.console.pid-file:         <%= @base %>/console.pid
+galaxy.console.announcement-url: http://<%= @hostname %>:4442
+galaxy.console.user:             <%= @user %>

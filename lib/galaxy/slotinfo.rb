@@ -16,11 +16,11 @@ module Galaxy
 
     # Writes the current state of the world into the 
     # slot_info file. 
-    def update config_path, core_base
+    def update config_path, core_base, config_uri = nil, binaries_uri = nil
       slot_info = OpenStruct.new(:base =>         core_base,
                                  :config_path => config_path,
-                                 :repository =>  @repository_base,
-                                 :binaries =>    @binaries_base,
+                                 :repository =>  config_uri || @repository_base,
+                                 :binaries =>    binaries_uri || @binaries_base,
                                  :machine =>     @machine,
                                  :agent_id =>    @agent_id,
                                  :agent_group => @agent_group,

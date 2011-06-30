@@ -82,7 +82,7 @@ module Galaxy
                     rescue TimeoutError
                         error_report.record_result "Error: Timed out communicating with agent #{agent.agent_id}/#{agent.agent_group}"
                     rescue Exception => e
-                        error_report.record_result "Error: #{agent.agent_id}/#{agent.host}: #{e}"
+                        error_report.record_result "Error: #{agent.agent_id}/#{agent.agent_group}: #{e}"
                     end
                 end
                 return report.finish, error_report.finish

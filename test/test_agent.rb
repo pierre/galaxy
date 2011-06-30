@@ -68,25 +68,23 @@ class TestAgent < Test::Unit::TestCase
         FileUtils.rm_rf @tempdir
     end
 
-    def test_agent_assign
-        @agent.become! '/a/b/c'
-        assert File.exist?(File.join(@deploy_dir, 'current', 'bin'))
+    def test_agent_assign_no_build
+      @agent.become! nil, '/a/b/c'
+      assert File.exist?(File.join(@deploy_dir, 'current', 'bin'))
     end
 
-    def test_agent_perform
-        @agent.become! '/a/b/c'
-        assert_nothing_raised do
-            @agent.perform! 'test-success'
-        end
-    end
+    def test_agent_perform_no_build
+      @agent.become! nil, '/a/b/c'
+      assert_nothing_raised do
+        @agent.perform! 'test-success'
+      end
 
-    def test_agent_perform_failure
-        @agent.become! '/a/b/c'
-        assert_raise RuntimeError do
-            @agent.logger.log.level = Logger::FATAL
-            # The failure will spit a stacktrace in the log (ERROR)
-            @agent.perform! 'test-failure'
-            @agent.logger.log.level = Logger::WARN
-        end
-    end
+    def test_agent_perform_failure_no_build
+      @agent.become! nil, '/a/b/c'
+      assert_raise RuntimeError do
+        @agent.logger.log.level = Logger::FATAL
+        # The failure will spit a stacktrace in the log (ERROR)
+        @agent.perform! 'test-failure'
+        @agent.logger.log.level = Logger::WARN
+      end
 end
