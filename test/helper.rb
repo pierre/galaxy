@@ -110,7 +110,7 @@ class MockAgent
     status
   end
 
-  def become! req_build_version, path, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy
+  def become! req_build_version, path, config_uri=nil, binaries_uri=nil, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy
     md = %r!^/([^/]+)/([^/]+)/(.*)$!.match path
     new_env, new_version, new_type = md[1], md[2], md[3]
     # XXX We don't test the versioning code - but it should go away soon
@@ -123,7 +123,7 @@ class MockAgent
     status
   end
 
-  def update_config! new_version, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy
+  def update_config! new_version, config_uri=nil, binaries_uri=nil, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy
     # XXX We don't test the versioning code - but it should go away soon
     #raise if @version == new_version
     @version = new_version

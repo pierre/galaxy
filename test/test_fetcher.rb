@@ -37,14 +37,14 @@ class TestFetcher < Test::Unit::TestCase
     
   def test_local_fetch
     obj = FetchObj.new nil, "foo", "bar"
-    path = @local_fetcher.fetch obj, "properties"
+    path = @local_fetcher.fetch obj, nil, "properties"
     assert File.exists?(path)
   end
   
   def test_http_fetch
 
     obj = FetchObj.new nil, "foo", "bar"
-    path = @http_fetcher.fetch obj, "properties"
+    path = @http_fetcher.fetch obj, nil, "properties"
     assert File.exists?(path)
   end
 
@@ -52,7 +52,7 @@ class TestFetcher < Test::Unit::TestCase
     assert_raise RuntimeError do
       @server.logger.level = Logger::FATAL
       obj = FetchObj.new nil, "gorple", "fez"
-      path = @http_fetcher.fetch obj, "properties"
+      path = @http_fetcher.fetch obj, nil, "properties"
       @server.logger.level = Logger::WARN
     end
   end
@@ -60,7 +60,7 @@ class TestFetcher < Test::Unit::TestCase
   def test_http_group_fetch
 
      obj = FetchObj.new "some.domain", "foo", "bar"
-     path = @http_fetcher.fetch obj, "properties"
+     path = @http_fetcher.fetch obj, nil, "properties"
      assert File.exists?(path)
    end
 
@@ -68,7 +68,7 @@ class TestFetcher < Test::Unit::TestCase
      assert_raise RuntimeError do
        @server.logger.level = Logger::FATAL
        obj = FetchObj.new "some.domain", "gorple", "fez"
-       path = @http_fetcher.fetch obj, "properties"
+       path = @http_fetcher.fetch obj, nil, "properties"
        @server.logger.level = Logger::WARN
      end
    end

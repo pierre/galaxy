@@ -1,7 +1,7 @@
 module Galaxy
     module AgentRemoteApi
         # Command to become a specific core
-        def become! req_build_version, requested_config_path, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy # TODO - make this configurable w/ default
+        def become! req_build_version, requested_config_path, config_uri=nil, binaries_uri=nil, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy # TODO - make this configurable w/ default
             lock
 
             current_deployment = current_deployment_number
@@ -28,12 +28,12 @@ module Galaxy
 
                 stop!
 
-                archive_path = @fetcher.fetch build_version
+                archive_path = @fetcher.fetch build_version, binaries_uri
 
                 new_deployment = current_deployment + 1
 
                 # Update the slot_info to reflect the new deployment state
-                slot_info.update requested_config.config_path, deployer.core_base_for(new_deployment)
+                slot_info.update requested_config.config_path, deployer.core_base_for(new_deployment), config_uri, binaries_uri
                 core_base = deployer.deploy(new_deployment, archive_path, requested_config.config_path)
 
                 deployer.activate(new_deployment)
@@ -52,7 +52,7 @@ module Galaxy
                 return status
             rescue Exception => e
                 # Roll slot_info back
-                slot_info.update config.config_path, deployer.core_base_for(current_deployment)
+                slot_info.update config.config_path, deployer.core_base_for(current_deployment), config_uri, binaries_uri
 
                 error_reason = "Unable to become #{requested_config_path}: #{e}"
                 @logger.error error_reason
@@ -63,7 +63,7 @@ module Galaxy
         end
 
         # Invoked by 'galaxy update-config <version>'
-        def update_config! requested_version, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy # TODO - make this configurable w/ default
+        def update_config! requested_version, config_uri=nil, binaries_uri=nil, versioning_policy = Galaxy::Versioning::StrictVersioningPolicy # TODO - make this configurable w/ default
             lock
 
             begin
@@ -90,11 +90,11 @@ module Galaxy
                 current_deployment = current_deployment_number
 
                 begin
-                    slot_info.update requested_config.config_path, deployer.core_base_for(current_deployment)
+                    slot_info.update requested_config.config_path, deployer.core_base_for(current_deployment), config_uri, binaries_uri
                     controller.perform! 'update-config', requested_config.config_path
                 rescue Exception => e
                     # Roll slot_info back
-                    slot_info.update config.config_path, deployer.core_base_for(current_deployment)
+                    slot_info.update config.config_path, deployer.core_base_for(current_deployment), config_uri, binaries_uri
 
                     error_reason = "Failed to update configuration for #{requested_config.config_path}: #{e}"
                     raise error_reason

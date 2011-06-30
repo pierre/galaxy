@@ -37,6 +37,8 @@ require 'galaxy/versioning'
     end
     opts.on("-b", "--build-version VERSION", "Specify the version of the build to install as [groupId:]serverType:version") { |arg| @options[:build_version] = arg.to_s }
     opts.on("-y", "--yes", "Avoid confirmation prompts by automatically confirming all actions") { @options[:implicit_confirmation] = true }
+    opts.on("-z", "--config-uri URI", "The base configuration URI to load config") {|arg| @options[:config_uri] = arg.to_s}
+    opts.on("-Z", "--binaries-uri URI", "The base binaries URI to load binaries") {|arg| @options[:binaries_uri] = arg.to_s}
 
     opts.separator ""
     opts.separator "Filters:"

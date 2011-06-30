@@ -11,6 +11,8 @@ module Galaxy
                 raise CommandLineError.new("Must specify version") unless @requested_version
 
                 @versioning_policy = options[:versioning_policy]
+                @config_uri = @options[:config_uri]
+                @binaries_uri = @options[:binaries_uri]
             end
 
             def normalize_filter filter
@@ -24,7 +26,7 @@ module Galaxy
                     raise "Cannot update configuration of unassigned agent"
                 end
                 current_config = Galaxy::SoftwareConfiguration.new_from_config_path(agent.config_path) # TODO - this should already be tracked
-                agent.proxy.update_config!(@requested_version, @versioning_policy)
+                agent.proxy.update_config!(@requested_version, @config_uri, @binaries_uri, @versioning_policy)
             end
 
             def self.help
