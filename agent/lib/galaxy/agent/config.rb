@@ -39,7 +39,8 @@ module Galaxy
                     :data_dir => "/var/tmp/galaxy-agent-data",
                     :announce_interval => 60,
                     :http_user => nil,
-                    :http_password => nil
+                    :http_password => nil,
+                    :legacy => true
                 }
             end
 

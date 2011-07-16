@@ -1,13 +1,53 @@
 Galaxy 4.0.0 - this is a complete rewrite.
 
-Requirements:
+= Agent
+
+== Requirements:
 
 * Work with ruby 1.8.7, 1.9.x and Jruby
 * Compatible with 2.5.1 galaxy command line client and gonsole (for ease of migration)
 * Compatible with 3.x.x version
 
-= Agent
+== Usage
 
 To start the agent:
 
   ruby -Ilib bin/galaxy-agent -f -i 127.0.0.1 -s -LDEBUG -l STDOUT -c 127.0.0.1:4442 -b /tmp -r /tmp/gepo -a25
+
+Configuration is similar to 3.x.x and before.
+
+By default, the Console-Agent communication is performed via DRb (for backward compatibility). However, when specifying
+the agent uri, one can prepend http:// (e.g. -i http://127.0.0.1:8080). In this case, the agent will use the new HTTP protocol.
+This is obviously not compatible with 3.x.x and before and requires the new 4.x.x console (see below).
+
+= Console
+
+The 4.0.0 gonsole is a rewrite in Java.
+
+A nice new feature is a visual representation of deployments:
+
+    http://127.0.0.1:8080/rest/1.0/deployment
+
+= Getting started
+
+== Legacy mode (new agent, old console)
+
+Start the agent
+
+  cd agent ; ruby -Ilib bin/galaxy-agent -f -i 127.0.0.1 -s -L DEBUG -l STDOUT -c 127.0.0.1:4442 -b /tmp -r /tmp/gepo -a20
+
+Start the 2.5.1 console
+
+  ruby -Ilib bin/galaxy-console -f -s -i 127.0.0.1 -l STDOUT  -L DEBUG
+
+== 4.0.0 version (new agent, new console)
+
+Start the agent (note the -N flag and the console uri):
+
+  cd agent ; ruby -Ilib bin/galaxy-agent -f -i 127.0.0.1 -s -L DEBUG -l STDOUT -c http://127.0.0.1:8080 -b /tmp -r /tmp/gepo -a20 -N
+
+Start the console
+
+  cd console ; mvn jetty:run
+
+Go to http://127.0.0.1:8080/rest/1.0/deployment

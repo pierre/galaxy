@@ -22,7 +22,7 @@ module Galaxy::Agent
 
             setup_logging
 
-            @log.info("Agent configuration: #{options}")
+            @log.info("Agent configuration: #{OpenStruct.new(options)}")
             setup_server
 
             # Heartbeat to the console
@@ -34,21 +34,21 @@ module Galaxy::Agent
 
         # Current Agent state
         def status
-            OpenStruct.new(
-                :agent_id => @options[:agent_id],
-                :agent_group => @options[:agent_group],
-                :url => @options[:agent_url],
-                :os => "TODO",
-                :machine => @options[:machine],
-                :core_type => "TODO",
-                :config_path => "TODO",
-                :build => "TODO",
-                :status => "TODO",
-                :last_start_time => "TODO",
-                :agent_status => 'online',
-                :galaxy_version => VERSION,
-                :slot_info => "TODO"
-            )
+            {
+                "agent_id" => @options[:agent_id],
+                "agent_group" => @options[:agent_group],
+                "url" => @options[:agent_url],
+                "os" => "TODO",
+                "machine" => @options[:machine],
+                "core_type" => "TODO",
+                "config_path" => "TODO",
+                "build" => "TODO",
+                "status" => "TODO",
+                "last_start_time" => "TODO",
+                "agent_status" => 'online',
+                "galaxy_version" => VERSION,
+                "slot_info" => "TODO"
+            }
         end
 
         private
@@ -111,10 +111,22 @@ module Galaxy::Agent
         # The agent POST its status (YAML format)
         def announce
             Net::HTTP.start(@console_uri.host, @console_uri.port) do |http|
-                status_data = status.to_yaml
+                url, status_data = get_announcement_url_and_payload
+                status_data = status_data.to_yaml
                 @log.debug("POSTing status to console: #{status_data}")
-                response = http.send_request('POST', @console_uri.request_uri, status_data, ANNOUNCEMENT_HEADERS)
+                response = http.send_request('POST', url, status_data, ANNOUNCEMENT_HEADERS)
                 @log.debug("Announcement response from console: #{response.code} #{response.message}: #{response.body}")
+            end
+        end
+
+        # The new console doesn't care about OpenStruct, send real YAML
+        # (we could send json but we don't want to require an extra gem on the box).
+        # Also, in the new world, the API is versioned.
+        def get_announcement_url_and_payload
+            if @options[:legacy]
+                return @console_uri.request_uri, OpenStruct.new(status)
+            else
+                return @console_uri.request_uri + "rest/1.0/deployment", status
             end
         end
     end

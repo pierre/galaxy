@@ -82,6 +82,9 @@ opts = OptionParser.new do |opts|
     opts.on("-P", "--http-password PASSWORD", "HTTP Password for authentication.") do |http_password|
         agent_config[:http_password] = http_password
     end
+    opts.on("-N", "--no-legacy", "Use the new galaxy console (4.0.0)") do |http_password|
+        agent_config[:legacy] = false
+    end
 
     opts.on_tail("-t", "--test", "Test, displays as -v without doing anything") do
         agent_config[:verbose] = true
