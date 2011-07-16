@@ -3,9 +3,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.ning</groupId>
-    <artifactId>galaxy</artifactId>
+    <artifactId>galaxy-agent</artifactId>
     <packaging>pom</packaging>
-    <version>3.0.0-SNAPSHOT</version>
+    <version>4.0.0-SNAPSHOT</version>
     <name>galaxy</name>
     <description>Galaxy, a lightweight software deployment and management tool</description>
     <url>http://github.com/ning/galaxy</url>
