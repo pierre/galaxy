@@ -5,3 +5,9 @@ Requirements:
 * Work with ruby 1.8.7, 1.9.x and Jruby
 * Compatible with 2.5.1 galaxy command line client and gonsole (for ease of migration)
 * Compatible with 3.x.x version
+
+= Agent
+
+To start the agent:
+
+  ruby -Ilib bin/galaxy-agent -f -i 127.0.0.1 -s -LDEBUG -l STDOUT -c 127.0.0.1:4442 -b /tmp -r /tmp/gepo -a25

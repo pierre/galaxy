@@ -8,6 +8,7 @@ pkg/
 *.iml
 *.ipr
 *.iws
+*.idea
 coverage/
 target/
 .rakeTasks
