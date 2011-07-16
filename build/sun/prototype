@@ -1,9 +1,0 @@
-i pkginfo
-i checkinstall
-i preinstall
-i postinstall
-i preremove
-i postremove
-i galaxy.gem
-f none var/svc/manifest/application/management/galaxy-agent.xml 0644 root root
-f none var/svc/manifest/application/management/galaxy-console.xml 0644 root root
