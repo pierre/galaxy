@@ -50,7 +50,7 @@
                 <th>Status</th>
             </tr>
             <%
-                for (DeploymentDescriptor e : it.getStore().values()) {
+                for (final DeploymentDescriptor e : it.getDeployments()) {
             %>
             <tr>
                 <td><%= e.getUrl() %>

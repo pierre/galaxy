@@ -22,7 +22,7 @@ import com.google.common.collect.Iterables;
 import org.apache.commons.lang.StringUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,18 +43,43 @@ public class DeploymentsStore
         this.store.putAll(otherStore);
     }
 
-    public void addOrUpdate(final DeploymentDescriptor deployment)
+    public synchronized void addOrUpdate(final DeploymentDescriptor deployment)
     {
+        // New agent?
         if (store.get(deployment.getAgentId()) == null) {
             store.put(deployment.getAgentId(), new ArrayList<DeploymentDescriptor>());
         }
 
+        // New deployment for this agent?
+        DeploymentDescriptor toRemove = null;
+        for (final DeploymentDescriptor deploymentDescriptor : store.get(deployment.getAgentId())) {
+            if (deploymentDescriptor.getDeploymentId().equals(deployment.getDeploymentId())) {
+                toRemove = deploymentDescriptor;
+                break;
+            }
+        }
+
+        if (toRemove != null) {
+            store.get(deployment.getAgentId()).remove(toRemove);
+        }
         store.get(deployment.getAgentId()).add(deployment);
     }
 
-    public Map<String, List<DeploymentDescriptor>> getStore()
+    public List<DeploymentDescriptor> getDeployments()
     {
-        return store;
+        final List<DeploymentDescriptor> deployments = new ArrayList<DeploymentDescriptor>();
+
+        final Object[] agents = store.values().toArray();
+        for (final Object agent : agents) {
+            for (final Object deploymentObject : (List) agent) {
+                deployments.add((DeploymentDescriptor) deploymentObject);
+            }
+        }
+
+        // Make sure the output is predictable for scripting purposes
+        Collections.sort(deployments);
+
+        return deployments;
     }
 
     /**
@@ -64,24 +89,17 @@ public class DeploymentsStore
     public String toString()
     {
         final StringBuilder builder = new StringBuilder();
-        final Object[] agents = store.values().toArray();
 
-        for (final Object agent : agents) {
-            // Make sure the output is predictable for scripting purposes
-            Arrays.sort(((List) agent).toArray());
-
-            for (final Object deploymentObject : (List) agent) {
-                final DeploymentDescriptor deployment = (DeploymentDescriptor) deploymentObject;
-                builder.append(String.format("%-20s %-45s %-10s %-15s %-20s %-20s %-15s %-8s\n",
-                    deployment.getAgentId(),
-                    deployment.getConfigPath(),
-                    deployment.getStatus(),
-                    deployment.getBuild(),
-                    deployment.getCoreType(),
-                    deployment.getMachine(),
-                    deployment.getAgentGroup(),
-                    deployment.getAgentStatus()));
-            }
+        for (final DeploymentDescriptor deployment : getDeployments()) {
+            builder.append(String.format("%-20s %-45s %-10s %-15s %-20s %-20s %-15s %-8s\n",
+                deployment.getAgentId(),
+                deployment.getConfigPath(),
+                deployment.getStatus(),
+                deployment.getBuild(),
+                deployment.getCoreType(),
+                deployment.getMachine(),
+                deployment.getAgentGroup(),
+                deployment.getAgentStatus()));
         }
 
         return builder.toString();
@@ -201,5 +219,11 @@ public class DeploymentsStore
         }
 
         return new DeploymentsStore(newStore);
+    }
+
+    // For unit testing
+    Map<String, List<DeploymentDescriptor>> getStore()
+    {
+        return store;
     }
 }

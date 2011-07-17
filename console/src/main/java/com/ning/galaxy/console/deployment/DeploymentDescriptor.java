@@ -1,6 +1,22 @@
+/*
+ * Copyright 2010-2011 Ning, Inc.
+ *
+ * Ning licenses this file to you under the Apache License, version 2.0
+ * (the "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at:
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package com.ning.galaxy.console.deployment;
 
-public class DeploymentDescriptor
+public class DeploymentDescriptor implements Comparable<DeploymentDescriptor>
 {
     // These attributes are sent for each ping.
     // We match the case of the ruby payload, but have appropriate
@@ -22,6 +38,7 @@ public class DeploymentDescriptor
 
     // Galaxy 3.x.x
     public String slot_info;
+    public String deployment_id;
 
     public String getAgentGroup()
     {
@@ -86,5 +103,26 @@ public class DeploymentDescriptor
     public String getUrl()
     {
         return url;
+    }
+
+    public String getDeploymentId()
+    {
+        // For backward compatibility: if there is no deployment_id,
+        // the agent manages a single deployment
+        if (deployment_id == null) {
+            return agent_id;
+        }
+        return deployment_id;
+    }
+
+    @Override
+    public int compareTo(final DeploymentDescriptor o)
+    {
+        if (!agent_id.equals(o.getAgentId())) {
+            return agent_id.compareTo(o.getAgentId());
+        }
+        else {
+            return deployment_id.compareTo(o.getDeploymentId());
+        }
     }
 }
