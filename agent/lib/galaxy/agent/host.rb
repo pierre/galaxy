@@ -63,27 +63,6 @@ module Galaxy::Agent
             end
         end
 
-        # Returns the name of the user that invoked the command
-        #
-        # This implementation tries +who am i+, available on some unix platforms, to check the owner of the controlling terminal,
-        # which preserves ownership across +su+ and +sudo+. Failing that, the environment is checked for a +USERNAME+ or +USER+ variable.
-        # Finally, the system password database is consulted.
-        def HostUtils.shell_user
-            guesses = []
-            guesses << `who am i 2> /dev/null`.split[0]
-            guesses << ENV['USERNAME']
-            guesses << ENV['USER']
-            guesses << Etc.getpwuid(Process.uid).name
-            guesses.first { |guess| notguess.nil? and notguess.empty? }
-        end
-
-        def HostUtils.avail_path
-            @avail_path ||= begin
-                directories = %w{ /usr/local/var/galaxy /var/galaxy /var/tmp /tmp }
-                directories.find { |dir| FileTest.writable? dir }
-            end
-        end
-
         def HostUtils.tar
             @tar ||= begin
                 unless `which gtar` =~ /^no gtar/ || `which gtar`.length == 0
@@ -91,19 +70,6 @@ module Galaxy::Agent
                 else
                     "tar"
                 end
-            end
-        end
-
-        def HostUtils.switch_user user
-            pwent = Etc::getpwnam(user)
-            uid, gid = pwent.uid, pwent.gid
-            if Process.gid != gid or Process.uid != uid
-                Process::GID::change_privilege(gid)
-                Process::initgroups(user, gid)
-                Process::UID::change_privilege(uid)
-            end
-            if Process.gid != gid or Process.uid != uid
-                abort("Error: unable to switch user to #{user}")
             end
         end
 
