@@ -34,18 +34,18 @@ public class TestDeploymentsStore
     public void setUp() throws Exception
     {
         // One agent with two deployments
-        List<DeploymentDescriptor> frontCollectorsDeployment = new ArrayList<DeploymentDescriptor>();
+        final List<DeploymentDescriptor> frontCollectorsDeployment = new ArrayList<DeploymentDescriptor>();
         frontCollectorsDeployment.add(new TestDeploymentDescriptor("127.0.0.1", "/qa/15.0/coll/front"));
         frontCollectorsDeployment.add(new TestDeploymentDescriptor("127.0.0.1", "/qa/15.0/coll/front"));
         deployments.put("agent_1", frontCollectorsDeployment);
 
         // Another agent with a single deployment
-        List<DeploymentDescriptor> backCollectorsDeployment = new ArrayList<DeploymentDescriptor>();
+        final List<DeploymentDescriptor> backCollectorsDeployment = new ArrayList<DeploymentDescriptor>();
         backCollectorsDeployment.add(new TestDeploymentDescriptor("10.1.2.3", "/qa/15.0/coll/back"));
         deployments.put("agent_2", backCollectorsDeployment);
 
         // Another agent with a single deployment
-        List<DeploymentDescriptor> collectorsDeployment = new ArrayList<DeploymentDescriptor>();
+        final List<DeploymentDescriptor> collectorsDeployment = new ArrayList<DeploymentDescriptor>();
         collectorsDeployment.add(new TestDeploymentDescriptor("1.1.1.1", "/qa/15.0/coll"));
         deployments.put("agent_3", collectorsDeployment);
 
@@ -55,7 +55,7 @@ public class TestDeploymentsStore
     @Test(groups = "fast")
     public void testFilterByAgentId() throws Exception
     {
-        DeploymentsStore filteredStore = store.filterByAgentId("127.0.0.1");
+        final DeploymentsStore filteredStore = store.filterByAgentId("127.0.0.1");
 
         // Only 1 agent should match
         Assert.assertEquals(filteredStore.getStore().values().size(), 1);
@@ -69,7 +69,7 @@ public class TestDeploymentsStore
     @Test(groups = "fast")
     public void testFilterByTypeAll() throws Exception
     {
-        DeploymentsStore filteredStore = store.filterByEnvVersionType(null, null, "coll.*");
+        final DeploymentsStore filteredStore = store.filterByEnvVersionType(null, null, "coll.*");
 
         // All 3 agents should match
         Assert.assertEquals(filteredStore.getStore().values().size(), 3);
@@ -84,7 +84,7 @@ public class TestDeploymentsStore
     @Test(groups = "fast")
     public void testFilterByTypeFront() throws Exception
     {
-        DeploymentsStore filteredStore = store.filterByEnvVersionType(null, null, "coll/front");
+        final DeploymentsStore filteredStore = store.filterByEnvVersionType(null, null, "coll/front");
 
         // Only 1 agent should match
         Assert.assertEquals(filteredStore.getStore().values().size(), 1);
@@ -98,7 +98,7 @@ public class TestDeploymentsStore
     @Test(groups = "fast")
     public void testFilterByTypeBack() throws Exception
     {
-        DeploymentsStore filteredStore = store.filterByEnvVersionType(null, null, "coll/back");
+        final DeploymentsStore filteredStore = store.filterByEnvVersionType(null, null, "coll/back");
 
         // Only 1 agent should match
         Assert.assertEquals(filteredStore.getStore().values().size(), 1);
@@ -112,7 +112,7 @@ public class TestDeploymentsStore
     @Test(groups = "fast")
     public void testFilterByType() throws Exception
     {
-        DeploymentsStore filteredStore = store.filterByEnvVersionType(null, null, "coll");
+        final DeploymentsStore filteredStore = store.filterByEnvVersionType(null, null, "coll");
 
         // Only 1 agent should match
         Assert.assertEquals(filteredStore.getStore().values().size(), 1);

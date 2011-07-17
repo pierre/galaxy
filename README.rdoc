@@ -2,12 +2,17 @@ Galaxy 4.0.0 - this is a complete rewrite.
 
 = Differences with pre-4.x.x
 
+== Build
 * Pure maven build
-* Agents are identified by a unique id, not by their IP address
-* Agents can manage multiple deployments (deployment slots are not pre-assigned, nor fixed size)
+
+== Client
 * Filters on the galaxy show command are applied with a logical & (the previous behavior was: set | host | (env & version & type))
 * The -M (cohabitant host) and -s (set) filter options have been deprecated
-* galaxy perform has been deprecated
+* galaxy update-config and perform have been deprecated
+
+== Agent
+* Agents are identified by a unique id, not by their IP address
+* Agents can manage multiple deployments (deployment slots are not pre-assigned, nor fixed size)
 
 = Command line client
 
@@ -50,6 +55,8 @@ The 4.0.0 gonsole is a rewrite in Java.
 A nice new feature is a visual representation of deployments:
 
     http://127.0.0.1:8080/rest/1.0/deployment
+
+The console uses YAML, not JSON for its communication with the agents. The reason for it is that we don't want the agent to rely on external gems.
 
 = Getting started
 

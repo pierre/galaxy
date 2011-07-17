@@ -1,18 +1,21 @@
 require 'fileutils'
-require 'galaxy/host'
+require 'galaxy/agent/host'
 require 'logger'
 
 module Galaxy::Agent
     class Starter
-        def initialize log, db
+        def initialize(log, db)
             @log = log
             @db = db
         end
 
+        # Given a deployment_id, perform the action on the specified core
+        # If deployment_id is nil, perform the action on all cores
         [:start!, :restart!, :stop!, :status].each do |action|
-            define_method action.to_s do |path|
+            define_method action.to_s do |deployment_id|
+                #TODO agent internal db path=...
                 return "unknown" if path.nil?
-                launcher_path = xnctl_path(path)
+                launcher_path = launcher_path(path)
 
                 command = "#{launcher_path} --slot-info #{@db.file_for('slot_info')} #{action.to_s.chomp('!')}"
                 @log.debug "Running #{command}"
@@ -48,9 +51,14 @@ module Galaxy::Agent
 
         private
 
-        def xnctl_path path
+        # Return a nice formatted version of Time.now
+        def time
+            Time.now.strftime("%m/%d/%Y %H:%M:%S")
+        end
+
+        def launcher_path(path)
             xnctl = File.join(path, "bin", "launcher")
-            xnctl = "/bin/sh #{xnctl}" unless FileTest.executable? xnctl
+            xnctl = "/bin/sh #{xnctl}" unless FileTest.executable?(xnctl)
             xnctl
         end
     end

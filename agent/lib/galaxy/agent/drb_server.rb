@@ -9,23 +9,27 @@ module Galaxy::Agent
             @log = log
         end
 
-        def become!(config)
-            @log.info("Becoming config=#{config}")
-            agent.become(config)
-            @agent.status
+        def become!(config, versioning_policy)
+            @log.info("Becoming config=#{config}, versioning_policy=#{versioning_policy}")
+            @agent.become!(config)
+            status
         end
 
         def update_config!(version, config_uri=nil, binaries_uri=nil)
             @log.info("Updating: version=#{version}, config_uri=#{config_uri}, binaries_uri=#{binaries_uri}")
-            agent.update_config(version, config_uri, binaries_uri)
+            @agent.update_config!(version, config_uri, binaries_uri)
+            status
+        end
+
+        def status
             @agent.status
         end
 
-        [:status, :start!, :restart!, :stop!, :rollback!, :clear!].each do |action|
+        [:start!, :restart!, :stop!, :rollback!, :clear!].each do |action|
             # Pre 4.x.x, one agent was managing one deployment. This is not the case anymore
-            define_method action.to_s do |deployment_id=nil|
+            define_method(action) do |deployment_id=nil|
                 @log.info("Agent asked to #{action} on deployment #{deployment_id}")
-                @agent.send(action.chomp("!"), deployment_id)
+                @agent.send(action, deployment_id)
                 status
             end
         end

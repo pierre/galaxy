@@ -35,7 +35,7 @@ import java.io.IOException;
 @Path("/rest/1.0/deployment")
 public class DeploymentsManager
 {
-    private final static Logger log = Logger.getLogger(DeploymentsManager.class);
+    private static final Logger log = Logger.getLogger(DeploymentsManager.class);
     private final Yaml yaml = new Yaml(new Constructor(new TypeDescription(DeploymentDescriptor.class)));
     private final DeploymentsStore store;
 

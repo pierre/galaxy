@@ -9,6 +9,7 @@ module Galaxy
         VERSION = "4.0.0"
     end
 end
+require File.expand_path(File.join(Galaxy::Agent::BASE, 'deployer'))
 require File.expand_path(File.join(Galaxy::Agent::BASE, 'drb_server'))
 require File.expand_path(File.join(Galaxy::Agent::BASE, 'http_server'))
 require File.expand_path(File.join(Galaxy::Agent::BASE, 'verbs'))
@@ -23,8 +24,14 @@ module Galaxy::Agent
         def initialize(options)
             @options = options
             @console_uri = URI.parse(@options[:console_url])
+            # Global lock
+            @lock = OpenStruct.new(:owner => nil, :count => 0, :mutex => Mutex.new)
 
             setup_logging
+
+            # Deployment manager
+            @deployer = Deployer.new(@options[:repository], @options[:binaries], @options[:deploy_dir], @options[:data_dir],
+                                     @options[:http_user], @options[:http_password], @log)
 
             @log.info("Agent configuration: #{OpenStruct.new(options)}")
             setup_server
@@ -37,17 +44,17 @@ module Galaxy::Agent
         end
 
         # Current Agent state
-        def status
+        def status(deployment_id=nil)
             {
                 "agent_id" => @options[:agent_id],
                 "agent_group" => @options[:agent_group],
                 "url" => @options[:agent_url],
-                "os" => "TODO",
+                "os" => "",
                 "machine" => @options[:machine],
-                "core_type" => "TODO",
-                "config_path" => "TODO",
-                "build" => "TODO",
-                "status" => "TODO",
+                "core_type" => "",
+                "config_path" => "",
+                "build" => "",
+                "status" => "",
                 "last_start_time" => "TODO",
                 "agent_status" => 'online',
                 "galaxy_version" => VERSION,
@@ -100,13 +107,13 @@ module Galaxy::Agent
         def setup_heartbeat
             @heartbeat = Thread.start do
                 loop do
-                    @log.debug("Sleeping #{@options[:announce_interval]} seconds until next heartbeat")
-                    sleep(@options[:announce_interval].to_i)
                     begin
                         announce
                     rescue Exception => e
                         @log.warn("Unable to communicate with console, #{e.message}")
                     end
+                    @log.debug("Sleeping #{@options[:announce_interval]} seconds until next heartbeat")
+                    sleep(@options[:announce_interval].to_i)
                 end
             end
         end
