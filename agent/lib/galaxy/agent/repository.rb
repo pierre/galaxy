@@ -1,5 +1,3 @@
-require 'open-uri'
-
 #
 # Copyright 2011 Ning, Inc.
 #
@@ -15,6 +13,8 @@ require 'open-uri'
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+require 'open-uri'
 
 module Galaxy::Agent
     class Repository
