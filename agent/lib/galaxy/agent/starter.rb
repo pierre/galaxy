@@ -1,63 +1,62 @@
-require 'fileutils'
-require 'galaxy/agent/host'
-require 'logger'
+require File.expand_path(File.join(Galaxy::Agent::BASE, 'host'))
 
 module Galaxy::Agent
     class Starter
-        def initialize(log, db)
+
+        RUNNING = "running"
+        STOPPED = "stopped"
+        UNKNOWN = "unknown"
+
+        def initialize(log, slot_info_path=nil)
             @log = log
-            @db = db
+            @slot_info_path = slot_info_path
         end
 
-        # Given a deployment_id, perform the action on the specified core
-        # If deployment_id is nil, perform the action on all cores
+        # Given a deployment_path, perform the action on the specified core
         [:start!, :restart!, :stop!, :status].each do |action|
-            define_method action.to_s do |deployment_id|
-                #TODO agent internal db path=...
-                return "unknown" if path.nil?
-                launcher_path = launcher_path(path)
+            define_method action.to_s do |path|
+                command = "#{launcher_path(path)} --slot-info #{@slot_info_path} #{action.to_s.chomp('!')}"
 
-                command = "#{launcher_path} --slot-info #{@db.file_for('slot_info')} #{action.to_s.chomp('!')}"
-                @log.debug "Running #{command}"
-                begin
-                    output = Galaxy::HostUtils.system command
-                    @log.debug "#{command} returned: #{output}"
-                    # Command returned 0, return status of the app
-                    case action
-                        when :start!
-                        when :restart!
-                            return "running"
-                        when :stop!
-                        when :status
-                            return "stopped"
-                        else
-                            return "unknown"
-                    end
-                rescue Galaxy::HostUtils::CommandFailedError => e
-                    # status is special
-                    if action == :status
-                        if e.exitstatus == 1
-                            return "running"
-                        else
-                            return "unknown"
+                @log.info "Running #{command}"
+                output, return_code = HostUtils.system(command)
+                @log.debug "#{command} returned #{output}, return code: #{return_code}"
+
+                case action
+                    when :start!, :restart! then
+                        case return_code
+                            when 0 then
+                                return RUNNING
+                            else
+                                return STOPPED
                         end
-                    end
-
-                    @log.warn "Unable to #{action}: #{e.message}"
-                    raise e
+                    when :stop! then
+                        case return_code
+                            when 0 then
+                                return STOPPED
+                            else
+                                return RUNNING
+                        end
+                    when :status then
+                        case return_code
+                            when 1 then
+                                RUNNING
+                            when 0 then
+                                STOPPED
+                            else
+                                UNKNOWN
+                        end
+                    else
+                        return UNKNOWN
                 end
             end
         end
 
         private
 
-        # Return a nice formatted version of Time.now
-        def time
-            Time.now.strftime("%m/%d/%Y %H:%M:%S")
-        end
-
-        def launcher_path(path)
-            xnctl = File.join(path, "bin", "launcher")
+        # Returns the path to the launcher script
+        # See https://github.com/brianm/galaxy-package-spec for semantics
+        def launcher_path(deployment_path)
+            xnctl = File.join(deployment_path, "bin", "launcher")
             xnctl = "/bin/sh #{xnctl}" unless FileTest.executable?(xnctl)
             xnctl
         end

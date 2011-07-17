@@ -107,28 +107,10 @@ module Galaxy::Agent
             end
         end
 
-        class CommandFailedError < Exception
-            attr_reader :command, :exitstatus, :output
-
-            def initialize command, exitstatus, output
-                @command = command
-                @exitstatus = exitstatus
-                @output = output
-            end
-
-            def message
-                "Command '#{@command}' exited with status code #{@exitstatus} and output: #{@output}".chomp()
-            end
-        end
-
-        # An alternative to Kernel.system that invokes a command, raising an exception containing
-        # the command's stdout and stderr if the command returns a status code other than 0
+        # An alternative to Kernel.system that invokes a command and returns STDOUT/STDERR and the return code
         def HostUtils.system command
             output = IO.popen("#{command} 2>&1") { |io| io.readlines }
-            unless $?.success?
-                raise CommandFailedError.new(command, $?.exitstatus, output)
-            end
-            output
+            return output, $?.exitstatus
         end
     end
 end
