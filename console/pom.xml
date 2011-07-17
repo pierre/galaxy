@@ -53,11 +53,6 @@
     </repositories>
     <dependencies>
         <dependency>
-            <groupId>commons-codec</groupId>
-            <artifactId>commons-codec</artifactId>
-            <version>1.5</version>
-        </dependency>
-        <dependency>
             <groupId>commons-lang</groupId>
             <artifactId>commons-lang</artifactId>
             <version>2.5</version>
@@ -67,12 +62,6 @@
             <artifactId>guice</artifactId>
             <version>2.0</version>
         </dependency>
-        <!-- jersey-guice depends on 2.0 version - which one to use? -->
-        <!--<dependency>
-            <groupId>com.google.code.guice</groupId>
-            <artifactId>guice-servlet</artifactId>
-            <version>2.0-ISSUE418</version>
-        </dependency>-->
         <dependency>
             <groupId>com.google.inject.extensions</groupId>
             <artifactId>guice-servlet</artifactId>
@@ -85,29 +74,14 @@
         </dependency>
         <dependency>
             <groupId>com.ning</groupId>
-            <artifactId>metrics.goodwill-access</artifactId>
-            <version>0.1.1</version>
-        </dependency>
-        <dependency>
-            <groupId>com.ning</groupId>
-            <artifactId>metrics.serialization-hadoop</artifactId>
-            <version>2.0.0-pre8</version>
-        </dependency>
-        <dependency>
-            <groupId>com.ning</groupId>
-            <artifactId>metrics.serialization-smile</artifactId>
-            <version>2.0.0-pre8</version>
-        </dependency>
-        <dependency>
-            <groupId>com.ning</groupId>
-            <artifactId>metrics.serialization-thrift</artifactId>
-            <version>2.0.0-pre8</version>
+            <artifactId>async-http-client</artifactId>
+            <version>1.6.4</version>
         </dependency>
         <dependency>
             <!-- Viewable body writer -->
             <groupId>com.sun.jersey</groupId>
             <artifactId>jersey-server</artifactId>
-            <version>1.1.5</version>
+            <version>1.3</version>
         </dependency>
         <dependency>
             <groupId>com.sun.jersey.contribs</groupId>
@@ -120,29 +94,19 @@
             <version>1.1.1</version>
         </dependency>
         <dependency>
-            <groupId>joda-time</groupId>
-            <artifactId>joda-time</artifactId>
-            <version>1.6.2</version>
-        </dependency>
-        <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.16</version>
         </dependency>
-
         <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-core-asl</artifactId>
-            <version>1.8.1</version>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.6.1</version>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.codehaus.jackson</groupId>
             <artifactId>jackson-jaxrs</artifactId>
-            <version>1.8.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-mapper-asl</artifactId>
             <version>1.8.1</version>
         </dependency>
         <dependency>
@@ -155,23 +119,18 @@
             <groupId>org.skife.config</groupId>
             <artifactId>config-magic</artifactId>
             <version>0.8</version>
+            <exclusions>
+                <exclusion>
+                    <!-- We want 1.6.1 -->
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>jul-to-slf4j</artifactId>
             <version>1.6.1</version>
-        </dependency>
-        <dependency><!-- Needed for generated Scribe and Thrift classes -->
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.6.1</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <version>1.6.1</version>
-            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.yaml</groupId>
@@ -344,26 +303,12 @@
                     <attachClasses>true</attachClasses>
                 </configuration>
             </plugin>
-
             <plugin>
                 <groupId>org.mortbay.jetty</groupId>
                 <artifactId>maven-jetty-plugin</artifactId>
                 <version>6.1.22</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-log4j12</artifactId>
-                        <!-- Has to match jetty's version, see http://www.slf4j.org/faq.html#IllegalAccessError -->
-                        <version>[1.3.1]</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>log4j</groupId>
-                        <artifactId>log4j</artifactId>
-                        <version>1.2.13</version>
-                    </dependency>
-                </dependencies>
                 <configuration>
-                    <scanIntervalSeconds>10</scanIntervalSeconds>
+                    <scanIntervalSeconds>60</scanIntervalSeconds>
                     <contextPath>/</contextPath>
                     <systemProperties>
                         <systemProperty>
