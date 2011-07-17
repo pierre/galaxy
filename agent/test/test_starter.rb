@@ -3,7 +3,7 @@ require 'test/unit'
 require File.expand_path(File.join(File.dirname(__FILE__), '../lib/galaxy/agent/agent'))
 require File.expand_path(File.join(File.dirname(__FILE__), '../lib/galaxy/agent/starter'))
 
-class TestRepository < Test::Unit::TestCase
+class TestStarter < Test::Unit::TestCase
 
     DEPLOYMENTS_PATH = File.join(File.dirname(__FILE__), "/deployments")
 

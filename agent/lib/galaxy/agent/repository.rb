@@ -19,7 +19,7 @@ require 'open-uri'
 module Galaxy::Agent
     class Repository
         def initialize(base)
-            @base = base
+            @binaries_repo = base
         end
 
         # Recursively concat property files together with the same name, e.g. given
@@ -35,7 +35,7 @@ module Galaxy::Agent
                 history << part
                 begin
                     path = "#{history.join("/")}/#{file_name}"
-                    url = "#{@base}#{path}"
+                    url = "#{@binaries_repo}#{path}"
                     open(url) do |io|
                         data = io.read
                         if block_given?
