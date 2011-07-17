@@ -57,7 +57,7 @@ public class DeploymentsManager
     {
         log.debug("Got ping: " + descriptorYaml);
         final DeploymentDescriptor descriptor = (DeploymentDescriptor) yaml.load(descriptorYaml);
-        store.add(descriptor);
+        store.addOrUpdate(descriptor);
         return Response.ok().build();
     }
 }

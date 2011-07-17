@@ -1,5 +1,14 @@
 Galaxy 4.0.0 - this is a complete rewrite.
 
+= Differences with pre-4.x.x
+
+* Pure maven build
+* Agents are identified by a unique id, not by their IP address
+* Agents can manage multiple deployments (deployment slots are not pre-assigned, nor fixed size)
+* Filters on the galaxy show command are applied with a logical & (the previous behavior was: set | host | (env & version & type))
+* The -M (cohabitant host) and -s (set) filter options have been deprecated
+* galaxy perform has been deprecated
+
 = Command line client
 
 Note: the command line client shipped with 4.x.x is only compatible with the agent and console running 4.x.x. See below for legacy mode.

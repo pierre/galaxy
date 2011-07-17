@@ -18,17 +18,16 @@ package com.ning.galaxy.console.endpoint;
 
 import com.google.inject.Inject;
 import com.ning.galaxy.console.deployment.DeploymentsStore;
-import org.apache.log4j.Logger;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 
 // Use for interaction with the command line client
 @Path("/rest/1.0/agent")
 public class AgentsManager
 {
-    private final static Logger log = Logger.getLogger(AgentsManager.class);
     private final DeploymentsStore store;
 
     @Inject
@@ -42,8 +41,20 @@ public class AgentsManager
      */
     @GET
     @Produces({"text/plain"})
-    public String getAllDeployments()
+    public String getAllDeployments(@QueryParam("env") final String env,
+                                    @QueryParam("version") final String version,
+                                    @QueryParam("type") final String type,
+                                    @QueryParam("agent_id") final String agentId,
+                                    @QueryParam("machine") final String machine,
+                                    @QueryParam("state") final String state,
+                                    @QueryParam("agent_state") final String agentState)
     {
-        return store.toString();
+        return store
+            .filterByAgentId(agentId)
+            .filterByMachine(machine)
+            .filterByState(state)
+            .filterByAgentState(agentState)
+            .filterByEnvVersionType(env, version, type)
+            .toString();
     }
 }

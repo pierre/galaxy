@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+require 'cgi'
 require 'net/http'
 require 'optparse'
 
@@ -235,8 +236,29 @@ exit(0) if @options[:version_requested]
 parse_command_line
 
 console_uri = URI.parse(@options[:console_url])
-Net::HTTP.start(console_uri.host, console_uri.port) do |http|
-    puts http.send_request('GET', console_uri.request_uri + 'rest/1.0/agent').body
+params = {
+    "env" => @filter[:env],
+    "version" => @filter[:type],
+    "type"=> @filter[:version],
+    "agent_id" => @filter[:host],
+    "machine" => @filter[:machine],
+    "state" => @filter[:set],
+    "agent_state" => @filter[:agent_state]
+}
+begin
+    Net::HTTP.start(console_uri.host, console_uri.port) do |http|
+        url = console_uri.request_uri +
+            "rest/1.0/agent?".concat(params.collect { |k, v| "#{k}=#{CGI::escape(v.to_s)}" }.join('&'))
+        output = http.send_request('GET', url).body
+
+        if output.length == 0
+            puts "No agents matching the provided filter(s) were available"
+        else
+            puts output
+        end
+    end
+rescue Errno::ECONNREFUSED
+    puts "Unable to contact console at #{console_uri}"
 end
 
 exit
