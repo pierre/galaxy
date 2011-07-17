@@ -2,62 +2,38 @@ require 'drb'
 
 # DRb version
 module Galaxy::Agent
+    # Service exposed via DRb to the console
     class DeploymentService
         def initialize(agent, log)
             @agent = agent
             @log = log
         end
 
-        def status
+        def become!(config)
+            @log.info("Becoming config=#{config}")
+            agent.become(config)
             @agent.status
-        end
-
-        def become!(build, config, config_uri=nil, binaries_uri=nil)
-            @log.info("Becoming: build=#{build}, config=#{config}, config_uri=#{config_uri}, binaries_uri=#{binaries_uri}")
-            status
         end
 
         def update_config!(version, config_uri=nil, binaries_uri=nil)
             @log.info("Updating: version=#{version}, config_uri=#{config_uri}, binaries_uri=#{binaries_uri}")
-            status
+            agent.update_config(version, config_uri, binaries_uri)
+            @agent.status
         end
 
-        def rollback!
-            @log.info("Rolling back")
-            status
+        [:status, :start!, :restart!, :stop!, :rollback!, :clear!].each do |action|
+            # Pre 4.x.x, one agent was managing one deployment. This is not the case anymore
+            define_method action.to_s do |deployment_id=nil|
+                @log.info("Agent asked to #{action} on deployment #{deployment_id}")
+                @agent.send(action.chomp("!"), deployment_id)
+                status
+            end
         end
 
-        def cleanup!
-            @log.info("Cleanup")
-            status
-        end
-
-        def stop!
-            @log.info("Stopping")
-            status
-        end
-
-        def start!
-            @log.info("Starting")
-            status
-        end
-
-        def restart!
-            @log.info("Restarting")
-            status
-        end
-
-        def clear!
-            @log.info("clearing")
-            status
-        end
-
+        # We don't support perform beginning 4.x.x
         def perform!(command, args = '')
             @log.warn("Unsupported")
-        end
-
-        def time
-            @log.warn("Unsupported")
+            status
         end
     end
 
@@ -65,6 +41,8 @@ module Galaxy::Agent
         def initialize(uri, agent, log=Logger.new)
             @agent = agent
             @log = log
+            # In contrary to previous versions, we limit in 4.x.x the scope
+            # of methods exposed over DRb (we don't expose the full agent anymore)
             @service = DRb.start_service(uri, DeploymentService.new(agent, log))
             @log.info("Started Galaxy Agent (DRb) on #{DRb.uri}")
         end

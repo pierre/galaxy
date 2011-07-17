@@ -11,10 +11,14 @@ module Galaxy
 end
 require File.expand_path(File.join(Galaxy::Agent::BASE, 'drb_server'))
 require File.expand_path(File.join(Galaxy::Agent::BASE, 'http_server'))
+require File.expand_path(File.join(Galaxy::Agent::BASE, 'verbs'))
 
 module Galaxy::Agent
     class Agent
         ANNOUNCEMENT_HEADERS = {'Content-Type' => 'text/plain; charset=utf-8', 'Connection' => 'close'}
+
+        # Where the magic happens
+        include Galaxy::Agent::Verbs
 
         def initialize(options)
             @options = options

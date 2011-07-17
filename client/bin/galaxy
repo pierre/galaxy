@@ -1,24 +1,11 @@
 #!/usr/bin/env ruby
 
-require 'rubygems'
+require 'net/http'
 require 'optparse'
-require 'resolv'
-require 'timeout'
 
-require 'galaxy/client'
-require 'galaxy/command'
-require 'galaxy/config'
-require 'galaxy/host'
-require 'galaxy/version'
-require 'galaxy/transport'
-require 'galaxy/versioning'
 
 @filter = {}
-@options = {
-    :console_url => ENV['GALAXY_CONSOLE'],
-    :thread_count => 25,
-    :versioning_policy => Galaxy::Versioning::StrictVersioningPolicy,
-    }
+@options = {:console_url => ENV['GALAXY_CONSOLE']}
 
 @opts = OptionParser.new do |opts|
     opts.banner = "#{$0} [options] <command> [args]"
@@ -105,13 +92,32 @@ require 'galaxy/versioning'
     end
 end
 
+def read_config_file config_file
+    config_file = config_file || ENV['GALAXY_CONFIG']
+    unless config_file.nil? or config_file.empty?
+        raise "Cannot find configuration file: #{config_file}" unless File.exist?(config_file)
+    end
+    config_files = [config_file, '/etc/galaxy.conf', '/usr/local/etc/galaxy.conf'].compact
+    config_files.each do |config_file|
+        begin
+            File.open config_file, "r" do |f|
+                return YAML.load(f.read)
+            end
+        rescue Errno::ENOENT
+        end
+    end
+    # Fall through to empty config hash
+    return {}
+end
+
+
 def parse_command_line
     begin
-        @options[:config_from_file] = Galaxy::Config::read_config_file(@options[:config_file])
-        get_command
+        @options[:config_from_file] = read_config_file(@options[:config_file])
+        #get_command
         abort(usage_message) if @options[:help_requested]
         validate_options
-    rescue CommandLineError => e
+    rescue ArgumentError => e
         puts usage_message if @command_class
         $stderr.puts "Error: #{e}" unless e.message.empty?
         exit(1)
@@ -121,13 +127,13 @@ end
 def get_command
     command_name = @args.shift
     unless @options[:help_requested]
-        raise CommandLineError.new("Missing command") if command_name.nil?
+        raise ArgumentError.new("Missing command") if command_name.nil?
     end
 
     unless command_name.nil?
         @command_class = Galaxy::Commands[command_name]
         if @command_class.nil?
-            raise CommandLineError.new("Unrecognized command: #{command_name}")
+            raise ArgumentError.new("Unrecognized command: #{command_name}")
         end
         @command = @command_class.new(@args, @options)
     end
@@ -138,19 +144,19 @@ def get_command
     begin
         @filter[:host] = canonical_hostname(@filter[:host]) if @filter[:host]
     rescue Exception => e
-        raise CommandLineError.new("DNS error: #{e}") unless command_name == "reap"
+        raise ArgumentError.new("DNS error: #{e}") unless command_name == "reap"
         @filter[:host] = @filter[:host]
     end
     begin
         @filter[:machine] = canonical_hostname(@filter[:machine]) if @filter[:machine]
     rescue Exception => e
-        raise CommandLineError.new("DNS error: #{e}") unless command_name == "reap"
+        raise ArgumentError.new("DNS error: #{e}") unless command_name == "reap"
         @filter[:machine] = @filter[:machine]
     end
     begin
         @options[:cohabitant_host] = canonical_hostname(@options[:cohabitant_host]) if @options[:cohabitant_host]
     rescue Exception => e
-        raise CommandLineError.new("DNS error: #{e}") unless command_name == "reap"
+        raise ArgumentError.new("DNS error: #{e}") unless command_name == "reap"
         @options[:cohabitant_host] = @options[:cohabitant_host]
     end
 end
@@ -158,10 +164,10 @@ end
 def validate_options
     console_url = @options[:console_url] || @options[:config_from_file]['galaxy.client.console']
     if console_url.nil?
-        raise CommandLineError.new("Cannot determine console host; consider passing -c <console> or setting GALAXY_CONSOLE")
+        raise ArgumentError.new("Cannot determine console host; consider passing -c <console> or setting GALAXY_CONSOLE")
     end
-    @options[:console_url] = normalize_console_url(console_url)
-    @options[:console] = Galaxy::Transport.locate(@options[:console_url])
+    #@options[:console_url] = normalize_console_url(console_url)
+    #@options[:console] = Galaxy::Transport.locate(@options[:console_url])
 
     if @options[:cohabitant_host]
         begin
@@ -207,7 +213,7 @@ def validate_agents
     # If command is show-console, it's okay not to have found any agent
     if @agents.length == 0 and @command.class.name != "show-console"
         abort("No agents matching the provided filter(s) were available for #{@command.class.name}")
-    elsif @agents.length > 1 and (@command.changes_agent_state or @command.changes_console_state) and not@options[:implicit_confirmation]
+    elsif @agents.length > 1 and (@command.changes_agent_state or @command.changes_console_state) and not @options[:implicit_confirmation]
         abort unless prompt_and_wait_for_user_confirmation("#{@agents.length} agents will be affected; continue? (y/n) ")
     end
     locate_agent_proxies # AgentProxy should provide this instead of having to instantiate it here
@@ -227,6 +233,13 @@ end
 
 exit(0) if @options[:version_requested]
 parse_command_line
+
+console_uri = URI.parse(@options[:console_url])
+Net::HTTP.start(console_uri.host, console_uri.port) do |http|
+    puts http.send_request('GET', console_uri.request_uri + 'rest/1.0/agent').body
+end
+
+exit
 get_agents
 validate_agents
 run_command

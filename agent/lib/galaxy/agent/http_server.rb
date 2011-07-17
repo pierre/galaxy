@@ -11,29 +11,62 @@ module Galaxy::Agent
             @log = log
         end
 
-        # Status of the deployment (galaxy show)
+        # Status of the deployment
+        #
+        # /rest/1.0/deployment/<id>
+        #
         def do_GET(req, resp)
-            resp.status = 200
-            resp['Content-Type'] = "application/json"
-
-            body = @agent.status.marshal_dump.to_s
-            @log.debug("GET response: #{body}")
-            resp.body = body
+            ok_response(resp)
         end
 
-        # Create a new deployment (galaxy assign, galaxy update)
+        # galaxy assign - create a new deployment
+        # Note: galaxy update and rollback are wrappers around assign.
+        #
+        # /rest/1.0/deployment
+        #
+        # The request body contains the configuration (YAML), e.g.
+        #  "--- \nconfig_path: /qa/15.0/coll\n"
+        # Response contains the id of the deployment
+        #
+        #
+        # galaxy start/stop/restart
+        #
+        # /rest/1.0/deployment/<id>
+        #
+        # The request body contains the action (YAML), e.g.
+        #  "--- \naction: start\n"
         def do_POST(req, resp)
-            raise HTTPStatus::OK
+            assignment = OpenStruct.new(YAML.load(req.body))
+            @log.info("Becoming: build=#{assignment.build}, config=#{assignment.config}, config_uri=#{assignment.config_uri}, binaries_uri=#{assignment.binaries_uri}")
+            agent.become(assignment.build, assignment.config, assignment.config_uri, assignment.binaries_uri)
+            ok_response(resp)
         end
 
-        # Update a deployment (galaxy update-config)
+        # galaxy update-config: update an existing deployment's configuration
+        #
+        # /rest/1.0/deployment/<id>
+        #
         def do_PUT(req, resp)
-            raise HTTPStatus::OK
+            assignment = OpenStruct.new(YAML.load(req.body))
+            @log.info("Updating: version=#{assignment.version}, config_uri=#{assignment.config_uri}, binaries_uri=#{assignment.binaries_uri}")
+            agent.update_config(assignment.version, assignment.config_uri, assignment.binaries_uri)
+            ok_response(resp)
         end
 
-        # Clear deployment (galaxy clear)
+        # galaxy clear: clear deployment
+        #
+        # /rest/1.0/deployment/<id>
+        #
         def do_DELETE(req, resp)
-            raise HTTPStatus::OK
+            ok_response(resp)
+        end
+
+        private
+
+        def ok_response(resp)
+            resp.status = 200
+            resp['Content-Type'] = "application/yaml"
+            resp.body = YAML.dump(@agent.status)
         end
     end
 
