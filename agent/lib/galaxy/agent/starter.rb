@@ -17,6 +17,7 @@
 require File.expand_path(File.join(Galaxy::Agent::BASE, 'host'))
 
 module Galaxy::Agent
+    # Responsible for the lifecycle of the core (start, stop, restart, ...)
     class Starter
 
         RUNNING = "running"

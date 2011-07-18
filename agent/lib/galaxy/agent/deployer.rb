@@ -7,16 +7,19 @@ require File.expand_path(File.join(Galaxy::Agent::BASE, 'repository'))
 module Galaxy::Agent
     # @Singleton
     class Deployer
-        def initialize(config_repo, binaries_repo, deploy_dir, data_dir, http_user, http_password, log)
+        attr_reader :deployments
+
+        def initialize(log, config_repo, binaries_repo, deploy_dir, data_dir, http_user=nil, http_password=nil, slot_info_path=nil)
+            @log = log
             @deploy_dir = deploy_dir
             @data_dir = data_dir
-            @log = log
+            @slot_info_path = slot_info_path
 
             # Downloader for configs
             @repository = Repository.new(config_repo)
 
             # Downloader for binaries
-            @fetcher = Fetcher.new(binaries_repo, http_user, http_password, @log)
+            @fetcher = Fetcher.new(@log, binaries_repo, http_user, http_password)
 
             # Internal state of deployments - dumped to disk
             @deployments = {}
@@ -28,47 +31,20 @@ module Galaxy::Agent
             unless %r!^/([^/]+)/([^/]+)/(.*)$!.match(config_path)
                 raise "Illegal config path '#{config_path}'"
             end
-
-            binary = get_binary_info(config_path)
-
             # TODO - validate os
 
             # Create a UUID - we should probably switch to the built-in UUID generator in ruby 1.9
             deployment_id = Time.now.to_i.to_s
             core_base = File.join(@deploy_dir, deployment_id)
 
-            # TODO - do the real deployment
+            # Install the binary
+            binary = install_binary!(config_path, core_base)
 
-            # Fetch binary
-            binary_file = @fetcher.fetch(binary)
-
-            # TODO Deploy and active
-            @log.info("Deploying #{binary} with config #{config_path} to #{core_base}")
-            FileUtils.mkdir_p core_base
-            command = "#{HostUtils.tar} -C #{core_base} -zxf #{binary_file.path}"
-            begin
-                HostUtils.system command
-                # Get rid of the payload
-                binary_file.close!
-            rescue HostUtils::CommandFailedError => e
-                raise "Unable to extract archive: #{e.message}"
-            end
-
-            # Invoke post-deployment script
-#            xndeploy = "#{core_base}/bin/xndeploy"
-#            unless FileTest.executable? xndeploy
-#                xndeploy = "/bin/sh #{xndeploy}"
-#            end
-#            command = "#{xndeploy} --slot-info #{@slot_info.get_file_name}"
-#            begin
-#                HostUtils.system command
-#            rescue HostUtils::CommandFailedError => e
-#                raise "Deploy script failed: #{e.message}"
-#            end
-
+            # Perform post-deployment steps
+            invoke_post_deployment_script!(core_base)
             activate(deployment_id)
 
-            # Mark new deployment
+            # Record new deployment
             @deployments[deployment_id] = OpenStruct.new(:binary => binary,
                                                          :config_path => config_path,
                                                          :core_base => core_base)
@@ -77,9 +53,43 @@ module Galaxy::Agent
             end
         end
 
-        private
+        # Invoke xndeploy
+        # See https://github.com/brianm/galaxy-package-spec for semantics
+        def invoke_post_deployment_script!(core_base)
+            xndeploy = File.join(core_base, "bin", "xndeploy")
+            unless FileTest.executable?(xndeploy)
+                xndeploy = "/bin/sh #{xndeploy}"
+            end
+            command = "#{xndeploy} --slot-info #{@slot_info_path}"
+
+            output, response_code = HostUtils.system(command)
+            raise "Unable invoke xndeploy: #{output}" if response_code != 0
+        end
+
+        # Given a config_path (e.g. /qa/15.0/coll) and a
+        # core_base (e.g. ~xncore/deploy/10029304), download and install
+        # the binary
+        # The core_base directory is created if it doesn't exist
+        def install_binary!(config_path, core_base)
+            # Get binary metadata
+            binary = get_binary_info(config_path)
+            # Fetch binary
+            binary_file = @fetcher.fetch(binary)
+
+            # Unpack the .tar.gz to the correct location
+            @log.info("Deploying #{binary} with config #{config_path} to #{core_base}")
+            FileUtils.mkdir_p(core_base)
+            output, response_code = HostUtils.system("#{HostUtils.tar} -C #{core_base} -zxf #{binary_file.path}")
+
+            # Get rid of the .tar.gz payload
+            binary_file.close!
+
+            raise "Unable to untar payload: #{output}" if response_code != 0
+            binary
+        end
 
         # TODO - make sense with multiple slots?
+        # We keep it for now for backwards compatibility
         def activate number
             core_base = File.join(@deploy_dir, number.to_s)
             current = File.join(@deploy_dir, "current")
@@ -99,7 +109,7 @@ module Galaxy::Agent
         #
         # We use maven-style coordinates.
         def get_binary_info(config_path)
-            build_properties =@repository.get_props(config_path, "build.properties")
+            build_properties = @repository.get_props(config_path, "build.properties")
 
             group = build_properties["group"]
             os = build_properties["os"]

@@ -17,11 +17,12 @@
 require 'open-uri'
 
 module Galaxy::Agent
+    # Responsible for downloading binaries
     class Fetcher
 
         DEFAULT_BINARY_EXTENSION = "tar.gz"
 
-        def initialize(binaries_repo, http_user, http_password, log)
+        def initialize(log, binaries_repo, http_user=nil, http_password=nil)
             @binaries_repo = binaries_repo
             @log = log
 

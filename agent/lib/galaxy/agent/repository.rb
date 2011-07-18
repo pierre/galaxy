@@ -17,6 +17,7 @@
 require 'open-uri'
 
 module Galaxy::Agent
+    # Responsible for handling (downloading, merging) configuration files
     class Repository
         def initialize(base)
             @binaries_repo = base

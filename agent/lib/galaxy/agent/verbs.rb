@@ -11,11 +11,12 @@ module Galaxy::Agent
                 announce
                 return status
             rescue Exception => e
+                # TODO
                 # Roll slot_info back
                 #slot_info.update config.config_path, deployer.core_base_for(current_deployment), config_uri, binaries_uri
 
                 error_reason = "Unable to become #{requested_config_path}: #{e}"
-                @log.error error_reason
+                @log.error(error_reason)
                 raise error_reason
             ensure
                 unlock
@@ -49,7 +50,6 @@ module Galaxy::Agent
         [:start!, :stop!, :restart!].each do |action|
             define_method(action) do |deployment_id=nil|
                 @log.info("Invoking #{action} on deployment_id=#{deployment_id}")
-                return
                 lock
 
                 begin

@@ -10,7 +10,7 @@ class TestFetcher < Test::Unit::TestCase
     BINARIES_PATH = File.join(File.dirname(__FILE__), "/binaries")
 
     def setup
-        @fetcher = Galaxy::Agent::Fetcher.new(BINARIES_PATH, nil, nil, Logger.new(STDOUT, Logger::INFO))
+        @fetcher = Galaxy::Agent::Fetcher.new(Logger.new(STDOUT, Logger::INFO), BINARIES_PATH)
     end
 
     def test_old_gepo_layout

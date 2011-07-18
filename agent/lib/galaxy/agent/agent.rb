@@ -30,8 +30,8 @@ module Galaxy::Agent
             setup_logging
 
             # Deployment manager
-            @deployer = Deployer.new(@options[:repository], @options[:binaries], @options[:deploy_dir], @options[:data_dir],
-                                     @options[:http_user], @options[:http_password], @log)
+            @deployer = Deployer.new(@log, @options[:repository], @options[:binaries], @options[:deploy_dir], @options[:data_dir],
+                                     @options[:http_user], @options[:http_password])
 
             @log.info("Agent configuration: #{OpenStruct.new(options)}")
             setup_server
@@ -44,16 +44,18 @@ module Galaxy::Agent
         end
 
         # Current Agent state
+        # TODO - multiple deployments
         def status(deployment_id=nil)
+            config = YAML::load_file(File.join(@options[:data_dir], deployment_id))
             {
                 "agent_id" => @options[:agent_id],
                 "agent_group" => @options[:agent_group],
                 "url" => @options[:agent_url],
                 "os" => "",
                 "machine" => @options[:machine],
-                "core_type" => "",
-                "config_path" => "",
-                "build" => "",
+                "core_type" => config.binary.artifact,
+                "config_path" => config.config_path,
+                "build" => config.binary.version,
                 "status" => "",
                 "last_start_time" => "TODO",
                 "agent_status" => 'online',
