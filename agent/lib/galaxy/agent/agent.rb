@@ -12,6 +12,7 @@ end
 require File.expand_path(File.join(Galaxy::Agent::BASE, 'deployer'))
 require File.expand_path(File.join(Galaxy::Agent::BASE, 'drb_server'))
 require File.expand_path(File.join(Galaxy::Agent::BASE, 'http_server'))
+require File.expand_path(File.join(Galaxy::Agent::BASE, 'starter'))
 require File.expand_path(File.join(Galaxy::Agent::BASE, 'verbs'))
 
 module Galaxy::Agent
@@ -33,6 +34,8 @@ module Galaxy::Agent
             @deployer = Deployer.new(@log, @options[:repository], @options[:binaries], @options[:deploy_dir], @options[:data_dir],
                                      @options[:http_user], @options[:http_password])
             @latest_deployment_id = @deployer.get_latest_deployment_id
+            # Runtime manager
+            @starter = Starter.new(@log)
 
             @log.info("Agent configuration: #{OpenStruct.new(options)}")
             setup_server
@@ -44,14 +47,18 @@ module Galaxy::Agent
             @server.join
         end
 
+        def deployment
+            if @latest_deployment_id.nil?
+                OpenStruct.new(:binary => OpenStruct.new)
+            else
+                YAML::load_file(File.join(@options[:data_dir], @latest_deployment_id))
+            end
+        end
+
         # Current Agent state
         # TODO - multiple deployments
-        def status(deployment_id=@latest_deployment_id)
-            if deployment_id.nil?
-                config = OpenStruct.new(:binary => OpenStruct.new)
-            else
-                config = YAML::load_file(File.join(@options[:data_dir], deployment_id))
-            end
+        def status
+            config = deployment
             {
                 "agent_id" => @options[:agent_id],
                 "agent_group" => @options[:agent_group],
@@ -61,11 +68,14 @@ module Galaxy::Agent
                 "core_type" => config.binary.artifact,
                 "config_path" => config.config_path,
                 "build" => config.binary.version,
-                "status" => "",
+                "status" => @starter.status(config.core_base),
                 "last_start_time" => "TODO",
                 "agent_status" => 'online',
                 "galaxy_version" => VERSION,
-                "slot_info" => "TODO"
+                "slot_info" => "TODO",
+
+                # For backward compatibility reasons
+                "host" => @options[:agent_id]
             }
         end
 

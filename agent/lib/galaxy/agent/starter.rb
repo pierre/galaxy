@@ -32,26 +32,32 @@ module Galaxy::Agent
         # Given a deployment_path, perform the action on the specified core
         [:start!, :restart!, :stop!, :status].each do |action|
             define_method action.to_s do |path|
-                command = "#{launcher_path(path)} --slot-info #{@slot_info_path} #{action.to_s.chomp('!')}"
+                # Add slot-info
+                command = "#{launcher_path(path)} #{action.to_s.chomp('!')}"
 
                 @log.info "Running #{command}"
                 output, return_code = HostUtils.system(command)
-                @log.debug "#{command} returned #{output}, return code: #{return_code}"
+                launcher_msg = "`#{command}` exited with status code #{return_code}, returned: #{output}"
+                @log.debug(launcher_msg)
 
                 case action
                     when :start!, :restart! then
                         case return_code
                             when 0 then
                                 return RUNNING
-                            else
+                            when 1 then
                                 return STOPPED
+                            else
+                                raise RuntimeError.new(launcher_msg)
                         end
                     when :stop! then
                         case return_code
                             when 0 then
                                 return STOPPED
-                            else
+                            when 1 then
                                 return RUNNING
+                            else
+                                raise RuntimeError.new(launcher_msg)
                         end
                     when :status then
                         case return_code
@@ -60,10 +66,10 @@ module Galaxy::Agent
                             when 0 then
                                 STOPPED
                             else
-                                UNKNOWN
+                                raise RuntimeError.new(launcher_msg)
                         end
                     else
-                        return UNKNOWN
+                        raise RuntimeError.new(launcher_msg)
                 end
             end
         end

@@ -22,7 +22,7 @@ module Galaxy::Agent
         end
 
         def status
-            @agent.status
+            OpenStruct.new(@agent.status)
         end
 
         [:start!, :restart!, :stop!, :rollback!, :clear!].each do |action|

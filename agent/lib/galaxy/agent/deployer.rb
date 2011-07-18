@@ -58,7 +58,7 @@ module Galaxy::Agent
             # Record new deployment
             @deployments[deployment_id] = OpenStruct.new(:binary => binary,
                                                          :config_path => config_path,
-                                                         :core_base => core_base)
+                                                         :core_base => File.join(@deploy_dir, core_base))
             File.open(File.join(@data_dir, deployment_id), "w") do |f|
                 f.write(YAML.dump(@deployments[deployment_id]))
             end

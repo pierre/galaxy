@@ -16,9 +16,11 @@ module Galaxy::Agent
                 # Roll slot_info back
                 #slot_info.update config.config_path, deployer.core_base_for(current_deployment), config_uri, binaries_uri
 
-                error_reason = "Unable to become #{requested_config_path}: #{e}"
-                @log.error(error_reason)
-                raise error_reason
+                error = "Error in agent: unable to become #{requested_config_path}: #{e}\n#{e.backtrace.join("\n")}"
+                # Log the error in the agent logs
+                @log.warn(error)
+                # Propagate the error to the command line client
+                raise error
             ensure
                 unlock
             end
@@ -48,15 +50,11 @@ module Galaxy::Agent
             end
         end
 
-        # Default arguments in blocks don't work in 1.8.7
-        [:start!, :stop!, :restart!].each do |action|
-            define_method(action) do
-                self.send(action, @latest_deployment_id)
-            end
-        end
 
         [:start!, :stop!, :restart!].each do |action|
-            define_method(action) do |deployment_id|
+            define_method(action) do |*args|
+                # Default arguments in blocks don't work in 1.8.7
+                deployment_id = args[0] || @latest_deployment_id
                 @log.info("Invoking #{action} on deployment_id=#{deployment_id}")
                 lock
 
@@ -64,15 +62,17 @@ module Galaxy::Agent
                     # TODO
                     #@config.state = "started"
                     #write_config current_deployment_number, @config
-                    @starter.send(action, deployment_id)
+                    @starter.send(action, deployment.core_base)
                     #@config.last_start_time = time
 
                     announce
                     return status
                 rescue Exception => e
-                    error_reason = "Unable to #{action}: #{e}"
-                    #error_reason += "\n#{e.message}" if e.class == Galaxy::HostUtils::CommandFailedError
-                    @log.warn(error_reason)
+                    error = "Error in agent: unable to #{action}: #{e}\n#{e.backtrace.join("\n")}"
+                    # Log the error in the agent logs
+                    @log.warn(error)
+                    # Propagate the error to the command line client
+                    raise error
                 ensure
                     unlock
                 end
