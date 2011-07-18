@@ -27,9 +27,9 @@ module Galaxy::Agent
 
         [:start!, :restart!, :stop!, :rollback!, :clear!].each do |action|
             # Pre 4.x.x, one agent was managing one deployment. This is not the case anymore
-            define_method(action) do |deployment_id=nil|
-                @log.info("Agent asked to #{action} on deployment #{deployment_id}")
-                @agent.send(action, deployment_id)
+            define_method(action) do
+                @log.info("Agent asked to #{action}")
+                @agent.send(action)
                 status
             end
         end

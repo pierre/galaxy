@@ -33,7 +33,7 @@ class TestFetcher < Test::Unit::TestCase
         path = file.path
 
         original_file = Digest::MD5.digest(File.read(File.join(BINARIES_PATH, "core-1.0.1-SNAPSHOT.tar.gz")))
-        downloaded_file = Digest::MD5.digest(File.read(file))
+        downloaded_file = Digest::MD5.digest(File.read(path))
         assert_equal(original_file, downloaded_file)
 
         # Make sure we can delete the file properly

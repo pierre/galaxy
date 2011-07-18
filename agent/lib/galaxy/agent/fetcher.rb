@@ -37,12 +37,20 @@ module Galaxy::Agent
         # The caller is expected to call .close! on it to delete it
         def fetch(build)
             binary_path = construct_binary_path(build)
-            tmp = Tempfile.open("galaxy-download")
+            tmp = Tempfile.new("galaxy-download")
 
             @log.info("Fetching #{binary_path} into #{tmp.path}")
-            open(binary_path, @config) do |io|
-                File.open(tmp, "w") { |f| f.write(io.read) }
+
+            # open-uri will pass through Kernel#open for local files
+            # Unfortunately, signatures differ and passing the @config hash
+            # will bomb on 1.8.7
+            if URI.parse(binary_path).scheme =~ /^https?:\/\//
+                open(binary_path, @config) { |io| tmp.write(io.read) }
+            else
+                open(binary_path) { |io| tmp.write(io.read) }
             end
+            tmp.close
+
             tmp
         end
 

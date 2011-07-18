@@ -47,9 +47,15 @@ module Galaxy::Agent
             end
         end
 
+        # Default arguments in blocks don't work in 1.8.7
         [:start!, :stop!, :restart!].each do |action|
-            define_method(action) do |deployment_id=@latest_deployment_id|
-                return if @latest_deployment_id.nil?
+            define_method(action) do
+                self.send(action, @latest_deployment_id)
+            end
+        end
+
+        [:start!, :stop!, :restart!].each do |action|
+            define_method(action) do |deployment_id|
                 @log.info("Invoking #{action} on deployment_id=#{deployment_id}")
                 lock
 
