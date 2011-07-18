@@ -8,6 +8,7 @@ module Galaxy::Agent
             begin
                 stop!
                 @latest_deployment_id = @deployer.deploy(requested_config_path)
+                @log.info("Deployed #{requested_config_path}, deployment_id is #{@latest_deployment_id}")
                 announce
                 return status
             rescue Exception => e

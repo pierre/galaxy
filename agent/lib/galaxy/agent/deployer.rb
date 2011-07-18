@@ -27,6 +27,15 @@ module Galaxy::Agent
             @deployments = {}
         end
 
+        # This is for backward compatibility only for now
+        def get_latest_deployment_id
+            begin
+                return IO.read(File.join(@data_dir, "deployments"))
+            rescue
+                return nil
+            end
+        end
+
         def deploy(config_path)
             # Validate the config path (of the form /env/version/build)
             # Using ! as regex delimiter since the config path contains / characters
@@ -52,6 +61,10 @@ module Galaxy::Agent
                                                          :core_base => core_base)
             File.open(File.join(@data_dir, deployment_id), "w") do |f|
                 f.write(YAML.dump(@deployments[deployment_id]))
+            end
+            # This is for backward compatibility only for now, need more thinking for multiple slots
+            File.open(File.join(@data_dir, "deployments"), "w") do |f|
+                f.write(deployment_id)
             end
 
             deployment_id

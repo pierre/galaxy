@@ -24,7 +24,6 @@ module Galaxy::Agent
         def initialize(options)
             @options = options
             @console_uri = URI.parse(@options[:console_url])
-            @latest_deployment_id = nil
             # Global lock
             @lock = OpenStruct.new(:owner => nil, :count => 0, :mutex => Mutex.new)
 
@@ -33,6 +32,7 @@ module Galaxy::Agent
             # Deployment manager
             @deployer = Deployer.new(@log, @options[:repository], @options[:binaries], @options[:deploy_dir], @options[:data_dir],
                                      @options[:http_user], @options[:http_password])
+            @latest_deployment_id = @deployer.get_latest_deployment_id
 
             @log.info("Agent configuration: #{OpenStruct.new(options)}")
             setup_server
