@@ -24,6 +24,7 @@ module Galaxy::Agent
         def initialize(options)
             @options = options
             @console_uri = URI.parse(@options[:console_url])
+            @latest_deployment_id = nil
             # Global lock
             @lock = OpenStruct.new(:owner => nil, :count => 0, :mutex => Mutex.new)
 
@@ -45,8 +46,12 @@ module Galaxy::Agent
 
         # Current Agent state
         # TODO - multiple deployments
-        def status(deployment_id=nil)
-            config = YAML::load_file(File.join(@options[:data_dir], deployment_id))
+        def status(deployment_id=@latest_deployment_id)
+            if deployment_id.nil?
+                config = OpenStruct.new(:binary => OpenStruct.new)
+            else
+                config = YAML::load_file(File.join(@options[:data_dir], deployment_id))
+            end
             {
                 "agent_id" => @options[:agent_id],
                 "agent_group" => @options[:agent_group],

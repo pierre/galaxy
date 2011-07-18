@@ -7,7 +7,7 @@ module Galaxy::Agent
 
             begin
                 stop!
-                @deployer.deploy(requested_config_path)
+                @latest_deployment_id = @deployer.deploy(requested_config_path)
                 announce
                 return status
             rescue Exception => e
@@ -48,7 +48,8 @@ module Galaxy::Agent
         end
 
         [:start!, :stop!, :restart!].each do |action|
-            define_method(action) do |deployment_id=nil|
+            define_method(action) do |deployment_id=@latest_deployment_id|
+                return if @latest_deployment_id.nil?
                 @log.info("Invoking #{action} on deployment_id=#{deployment_id}")
                 lock
 

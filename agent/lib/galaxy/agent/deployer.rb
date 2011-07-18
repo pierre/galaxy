@@ -11,15 +11,17 @@ module Galaxy::Agent
 
         def initialize(log, config_repo, binaries_repo, deploy_dir, data_dir, http_user=nil, http_password=nil, slot_info_path=nil)
             @log = log
+            @config_repo = config_repo
+            @binaries_repo = binaries_repo
             @deploy_dir = deploy_dir
             @data_dir = data_dir
             @slot_info_path = slot_info_path
 
             # Downloader for configs
-            @repository = Repository.new(config_repo)
+            @repository = Repository.new(@config_repo)
 
             # Downloader for binaries
-            @fetcher = Fetcher.new(@log, binaries_repo, http_user, http_password)
+            @fetcher = Fetcher.new(@log, @binaries_repo, http_user, http_password)
 
             # Internal state of deployments - dumped to disk
             @deployments = {}
@@ -41,7 +43,7 @@ module Galaxy::Agent
             binary = install_binary!(config_path, core_base)
 
             # Perform post-deployment steps
-            invoke_post_deployment_script!(core_base)
+            invoke_post_deployment_script!(config_path, core_base)
             activate(deployment_id)
 
             # Record new deployment
@@ -51,16 +53,20 @@ module Galaxy::Agent
             File.open(File.join(@data_dir, deployment_id), "w") do |f|
                 f.write(YAML.dump(@deployments[deployment_id]))
             end
+
+            deployment_id
         end
 
         # Invoke xndeploy
         # See https://github.com/brianm/galaxy-package-spec for semantics
-        def invoke_post_deployment_script!(core_base)
+        def invoke_post_deployment_script!(config_path, core_base)
             xndeploy = File.join(core_base, "bin", "xndeploy")
             unless FileTest.executable?(xndeploy)
                 xndeploy = "/bin/sh #{xndeploy}"
             end
-            command = "#{xndeploy} --slot-info #{@slot_info_path}"
+            # TODO
+            #command = "#{xndeploy} --slot-info #{@slot_info_path}"
+            command = "#{xndeploy} --base #{core_base} --binaries #{@binaries_repo} --config-path #{config_path} --repository #{@config_repo}"
 
             output, response_code = HostUtils.system(command)
             raise "Unable invoke xndeploy: #{output}" if response_code != 0
