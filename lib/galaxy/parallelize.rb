@@ -62,7 +62,7 @@ end
 
 # execute in parallel with up to thread_count threads at once
 class Array
-    def parallelize thread_count
+    def parallelize(thread_count = 100)
         sem = CountingSemaphore.new(thread_count ? thread_count : 100)
         results = []
         threads = ThreadGroup.new
