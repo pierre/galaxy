@@ -8,26 +8,28 @@ class CountingSemaphore
     end
 
     def wait
-        Thread.critical = true
-        if (@counter -= 1) < 0
-            @waiting_list.push(Thread.current)
-            Thread.stop
-        end
+        Thread.exclusive {
+            @counter -= 1
+            if @counter < 0
+                @waiting_list.push(Thread.current)
+                Thread.stop
+            end
+        }
         self
-    ensure
-        Thread.critical = false
     end
 
     def signal
-        Thread.critical = true
-        begin
-            if (@counter += 1) <= 0
-                t = @waiting_list.shift
-                t.wakeup if t
+        Thread.exclusive {
+            begin
+                @counter += 1
+                if @counter <= 0
+                    t = @waiting_list.shift
+                    t.wakeup if t
+                end
+            rescue ThreadError
+                retry
             end
-        rescue ThreadError
-            retry
-        end
+        }
         self
     ensure
         Thread.critical = false
@@ -60,8 +62,8 @@ end
 
 # execute in parallel with up to thread_count threads at once
 class Array
-    def parallelize thread_count=100
-        sem = CountingSemaphore.new thread_count
+    def parallelize thread_count
+        sem = CountingSemaphore.new(thread_count ? thread_count : 100)
         results = []
         threads = ThreadGroup.new
         lock = Mutex.new
