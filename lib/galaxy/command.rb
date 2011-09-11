@@ -23,6 +23,8 @@ module Galaxy
                 attr_reader :name
             end
 
+            attr_writer :report_class, :report, :error_report
+
             def self.register_command name
                 @name = name
                 Galaxy::Commands.register_command name, self
@@ -93,7 +95,7 @@ module Galaxy
             end
 
             def report_class
-                Galaxy::Client::SoftwareDeploymentReport
+                @report_class ||= Galaxy::Client::SoftwareDeploymentReport
             end
 
             def error_report
